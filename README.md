@@ -4,6 +4,10 @@ AssetBundle的简易封装，同时提供异步(async await)和同步api，
 所有api命名和功能及用法都基本与Unity AssetBundle类中的api相同。
 不同的是内部会自动管理AssetBundle的依赖关系，做引用计数，适时的加载和卸载依赖包。
 
+> 整体的设置和打包操作通过EasyAssetBundleConfig Inspector UI 实现。
+
+![](images/inspector_ui.png)
+
 **两种模式**
 1.  Virtual 模拟模式
 >  内部加载资源直接通过AssetDatabase读取，本质上所有加载动作都是同步进行的，
@@ -66,5 +70,8 @@ public class TestBuildProcessor : AbstractBuildProcessor
     }
 }
 ```
+创建ScriptableObject之后EasyAssetBundleConfig Inspector UI中会显示出对应条目。
+
+![](images/build_processors_ui.png)
 
 可以创建任意多个构建处理器，构建时会按照一定的顺序执行。
