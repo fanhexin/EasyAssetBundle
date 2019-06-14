@@ -47,6 +47,8 @@ var asset = await _assetRef.LoadAsync();
 // 这里资源卸载略有不同
 _assetRef.Unload();
 ```
+>  同步模式的api名称只是相对于异步模式去掉Async字样。
+
 >  需要注意的是两种Reference方式主要是为了避免在代码中硬编码字符串，但是目前并
 没有提供随着编辑器中AssetBundle名称更改同步更改其中序列化名称的机制，因此在实际使用
 中尽量减少重命名资源名和AssetBundle名称。
