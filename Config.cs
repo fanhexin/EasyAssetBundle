@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace EasyAssetBundle
 {
-    [CreateAssetMenu(fileName = "EasyAssetBundleConfig", menuName = "GameFoundation/EasyAssetBundleConfig")]
     public class Config : ScriptableObject
     {
         public static Config instance { get; private set; }
