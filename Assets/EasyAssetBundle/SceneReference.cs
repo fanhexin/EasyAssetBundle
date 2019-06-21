@@ -1,6 +1,7 @@
 using System;
 using UniRx.Async;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace EasyAssetBundle
 {
@@ -12,17 +13,17 @@ namespace EasyAssetBundle
 
         [SerializeField]
         string _assetName;
-        
+
         IAssetBundle _assetBundle;
         
-        public async UniTask LoadAsync()
+        public async UniTask LoadAsync(LoadSceneMode loadSceneMode = LoadSceneMode.Additive)
         {
             if (_assetBundle == null)
             {
                 _assetBundle = await AssetBundleLoader.instance.LoadAsync(_abName);
             }
 
-            await _assetBundle.LoadSceneAsync(_assetName);
+            await _assetBundle.LoadSceneAsync(_assetName, loadSceneMode);
         }
         
         public void Unload(bool unloadAllLoadedObjects = true)
