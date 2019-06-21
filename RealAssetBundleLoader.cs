@@ -45,6 +45,7 @@ namespace EasyAssetBundle
         AssetBundleManifest _manifest;
         readonly Dictionary<string, (AssetBundle ab, int refCnt)> _abRefs = new Dictionary<string, (AssetBundle ab, int refCnt)>();
         readonly List<UniTask<AssetBundle>> _abLoadTasks = new List<UniTask<AssetBundle>>();
+        readonly Dictionary<string, AssetBundleCreateRequest> _abLoadingTasks = new Dictionary<string, AssetBundleCreateRequest>();
         
         public RealAssetBundleLoader(string basePath, string manifestName)
         {
@@ -60,11 +61,15 @@ namespace EasyAssetBundle
             manifestAb.Unload(false);
         }
 
-        AssetBundle IncreaseRef(string name)
+        AssetBundle IncreaseRef(string name, AssetBundle ab = null)
         {
             if (!_abRefs.TryGetValue(name, out var item))
             {
-                return null;
+                if (ab != null)
+                {
+                    _abRefs[name] = (ab, 1);
+                }
+                return ab;
             }
 
             ++item.refCnt;
@@ -82,9 +87,16 @@ namespace EasyAssetBundle
 
         async UniTask<AssetBundle> LoadAssetBundleAsync(string name)
         {
-            string path = Path.Combine(_basePath, name);
-            var ab = await AssetBundle.LoadFromFileAsync(path);
-            _abRefs[name] = (ab, 1);
+            if (!_abLoadingTasks.TryGetValue(name, out var req))
+            {
+                string path = Path.Combine(_basePath, name);
+                req = AssetBundle.LoadFromFileAsync(path);
+                _abLoadingTasks[name] = req;
+            }
+
+            var ab = await req;
+            IncreaseRef(name, ab);
+            _abLoadingTasks.Remove(name);
             return ab;
         }
         
@@ -140,8 +152,7 @@ namespace EasyAssetBundle
                     continue;
                 }
 
-                string path = Path.Combine(_basePath, dependency);
-                _abLoadTasks.Add(AssetBundle.LoadFromFileAsync(path).ToUniTask());
+                _abLoadTasks.Add(LoadAssetBundleAsync(dependency));
             }
 
             if (_abLoadTasks.Count == 0)
@@ -149,11 +160,7 @@ namespace EasyAssetBundle
                 return;
             }
 
-            AssetBundle[] abs = await UniTask.WhenAll(_abLoadTasks.ToArray());
-            foreach (AssetBundle ab in abs)
-            {
-                _abRefs[ab.name] = (ab, 1);
-            }
+            await UniTask.WhenAll(_abLoadTasks);
             _abLoadTasks.Clear();
         }
 
