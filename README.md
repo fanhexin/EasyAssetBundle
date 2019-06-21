@@ -20,7 +20,10 @@ AssetBundle的简易封装，同时提供异步(async await)和同步api，
 1.  代码中通过字符串加载
 ```cs
 IAssetBundle ab = await AssetBundleLoader.instance.LoadAsync("AssetBundle Name");
+// 加载资源
 var asset = await ab.LoadAssetAsync<AssetType>("Asset Name");
+// 加载场景
+await ab.LoadSceneAsync("SceneName", LoadSceneMode.Additive);
 // 省略若干操作
 ab.Unload(); // 在合适的时候卸载资源
 ```
@@ -47,6 +50,17 @@ var asset = await _assetRef.LoadAsync();
 // 这里资源卸载略有不同
 _assetRef.Unload();
 ```
+4. 通过SceneReference加载场景
+```cs
+// 同上AssetReference用法，拖入资源后，引用的是AssetBundle Name和场景名
+[SerializeField] SceneReference _sceneRef;
+
+// 加载场景，默认以Additive方式加载
+await _sceneRef.LoadAsync();
+
+//卸载场景
+_sceneRef.Unload();
+```
 >  同步模式的api名称只是相对于异步模式去掉Async字样。
 
 >  需要注意的是两种Reference方式主要是为了避免在代码中硬编码字符串，但是目前并
@@ -56,7 +70,7 @@ _assetRef.Unload();
 
 **构建处理器**
 
-通过创建继承自`AbstractBuildProcessor`的子类，并且创建对应的ScriptableObject，可以在构建AssetBundle之前和之后执行任意操作(如加密解密文本文件)。
+通过创建继承自`AbstractBuildProcessor`的子类，并且创建对应的ScriptableObject（两者都需放在Editor目录下）。可以在构建AssetBundle之前和之后执行任意操作(如加密解密文本文件)。
 ```cs
 [CreateAssetMenu(fileName = "TestBuildProcessor", menuName = "BuildProcessors/TestBuildProcessor")]
 public class TestBuildProcessor : AbstractBuildProcessor
