@@ -1,0 +1,11 @@
+{
+    "name": "com.yj.EasyAssetBundle",
+    "displayName": "EasyAssetBundle",
+    "version": "1.0.0",
+    "unity": "2018.3",
+    "description": "AssetBundle的简易封装，采用async风格api。",
+    "keywords": ["asset", "bundle", "assetbundle"],
+    "dependencies": {
+        "com.yj.UniTask": "http://192.168.0.254:8081/common/UniTask.git"
+    }
+}
