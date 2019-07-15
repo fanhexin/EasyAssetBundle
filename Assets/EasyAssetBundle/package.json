@@ -6,6 +6,6 @@
     "description": "AssetBundle的简易封装，采用async风格api。",
     "keywords": ["asset", "bundle", "assetbundle"],
     "dependencies": {
-        "com.yj.UniTask": "http://192.168.0.254:8081/common/UniTask.git"
+        "com.yj.UniTask": "http://192.168.0.254:8081/fandongdong/UniTask.git#ump"
     }
 }
