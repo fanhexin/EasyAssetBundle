@@ -8,6 +8,17 @@ AssetBundle的简易封装，同时提供异步(async await)和同步api，
 
 ![](images/inspector_ui.png)
 
+## 安装
+
+在`Unity`的`package.json`中加入如下两行：
+
+```json
+{
+    "com.yj.unitask": "http://192.168.0.254:8081/fandongdong/UniTask.git#upm",
+    "com.yj.easyassetbundle": "http://192.168.0.254:8081/common/easyassetbundle.git#upm"
+}
+```
+
 **两种模式**
 1.  Virtual 模拟模式
 >  内部加载资源直接通过AssetDatabase读取，本质上所有加载动作都是同步进行的，
