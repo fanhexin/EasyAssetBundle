@@ -4,7 +4,7 @@ AssetBundle的简易封装，同时提供异步(async await)和同步api，
 所有api命名和功能及用法都基本与Unity AssetBundle类中的api相同。
 不同的是内部会自动管理AssetBundle的依赖关系，做引用计数，适时的加载和卸载依赖包。
 
-> 整体的设置和打包操作通过EasyAssetBundleConfig Inspector UI 实现。
+> 整体的设置和打包操作通过`Window > EasyAssetBundle > Settings` 窗口实现。
 
 ![](images/inspector_ui.png)
 
