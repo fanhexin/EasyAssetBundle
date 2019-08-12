@@ -5,8 +5,6 @@ namespace EasyAssetBundle
 {
     public class Config : ScriptableObject
     {
-        public static Config instance { get; private set; }
-        
 #if UNITY_EDITOR
         public const string MODE_SAVE_KEY = "easy_asset_bundle_mode";
         public enum Mode
@@ -33,9 +31,5 @@ namespace EasyAssetBundle
         [SerializeField] string _manifestName = "Manifest";
 
         public string manifestName => _manifestName;
-        protected Config()
-        {
-            instance = this;
-        }
     }
 }
