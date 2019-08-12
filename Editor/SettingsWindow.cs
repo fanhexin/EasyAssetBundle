@@ -1,4 +1,5 @@
 using UnityEditor;
+using UnityEngine;
 
 namespace EasyAssetBundle.Editor
 {
@@ -14,7 +15,7 @@ namespace EasyAssetBundle.Editor
 
         void OnEnable()
         {
-            _config = Config.instance;
+            _config = Resources.Load<Config>("EasyAssetBundleConfig");
         }
 
         void OnGUI()
