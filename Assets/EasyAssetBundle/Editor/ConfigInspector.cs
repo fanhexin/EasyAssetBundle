@@ -94,7 +94,7 @@ namespace EasyAssetBundle.Editor
 
         public static void BuildAssetBundle()
         {
-            var config = Resources.Load<Config>("EasyAssetBundleConfig");
+            var config = Config.instance;
             BuildAssetBundle(config.manifestName, config.buildOptions, GetProcessors());
         }
 

@@ -10,7 +10,7 @@ AssetBundle的简易封装，同时提供异步(async await)和同步api，
 
 ## 安装
 
-在`Unity`的`package.json`中加入如下两行：
+在`Unity`的`manifest.json`中加入如下两行：
 
 ```json
 {

@@ -12,7 +12,7 @@ namespace EasyAssetBundle
             {
                 if (_assetBundleLoader == null)
                 {
-                    Config config = Resources.Load<Config>("EasyAssetBundleConfig");
+                    Config config = Config.instance;
 #if UNITY_EDITOR
                     if (config.mode == Config.Mode.Virtual)
                     {
