@@ -1,4 +1,6 @@
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 
 namespace EasyAssetBundle
@@ -6,6 +8,26 @@ namespace EasyAssetBundle
     public class Config : ScriptableObject
     {
 #if UNITY_EDITOR
+        public static Config instance
+        {
+            get
+            {
+                var config = Resources.Load<Config>("EasyAssetBundleSettings");
+                if (config == null)
+                {
+                    config = CreateInstance<Config>();
+                    if (!AssetDatabase.IsValidFolder("Assets/Resources"))
+                    {
+                        AssetDatabase.CreateFolder("Assets", "Resources");
+                    }
+                    AssetDatabase.CreateAsset(config, "Assets/Resources/EasyAssetBundleSettings.asset");
+                    AssetDatabase.Refresh();
+                }
+
+                return config;
+            }
+        }
+        
         public const string MODE_SAVE_KEY = "easy_asset_bundle_mode";
         public enum Mode
         {
