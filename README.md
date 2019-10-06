@@ -14,8 +14,8 @@ AssetBundle的简易封装，同时提供异步(async await)和同步api，
 
 ```json
 {
-    "com.yj.unitask": "http://192.168.0.254:8081/fandongdong/UniTask.git#upm",
-    "com.yj.easyassetbundle": "http://192.168.0.254:8081/common/easyassetbundle.git#upm"
+    "com.github.unitask": "https://github.com/fanhexin/UniTask.git#upm",
+    "com.github.fanhexin.easyassetbundle": "https://github.com/fanhexin/EasyAssetBundle.git#upm"
 }
 ```
 
