@@ -8,6 +8,8 @@ public class Test : MonoBehaviour
     [SerializeField] AssetBundleReference _blueSphereAbRef;
     [SerializeField] AssetReference _greenCubeRef;
     [SerializeField] AssetReference _greenSphereRef;
+    [SerializeField, AssetBundleName("mat")]
+    private string _abName;
 
     List<IAssetBundle> _abs = new List<IAssetBundle>();
 
