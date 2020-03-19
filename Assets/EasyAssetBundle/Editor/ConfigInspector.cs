@@ -146,7 +146,6 @@ namespace EasyAssetBundle.Editor
             DirectoryCopy(cachePath, destPath, true);
 
             File.Move($"{destPath}/{buildTarget}", $"{destPath}/{manifestName}");
-            File.Move($"{destPath}/{buildTarget}.manifest", $"{destPath}/{manifestName}.manifest");
             AssetDatabase.Refresh();
         }
 
@@ -162,7 +161,6 @@ namespace EasyAssetBundle.Editor
                     + sourceDirName);
             }
 
-            DirectoryInfo[] dirs = dir.GetDirectories();
             // If the destination directory doesn't exist, create it.
             if (!Directory.Exists(destDirName))
             {
@@ -170,7 +168,9 @@ namespace EasyAssetBundle.Editor
             }
         
             // Get the files in the directory and copy them to the new location.
-            FileInfo[] files = dir.GetFiles();
+            // 排除掉.manifest文件，其只用来在编辑器端做增量构建用，运行时并不需哟
+            var files = dir.EnumerateFiles()
+                .Where(x => Path.GetExtension(x.Name) != ".manifest");
             foreach (FileInfo file in files)
             {
                 string temppath = Path.Combine(destDirName, file.Name);
@@ -180,7 +180,7 @@ namespace EasyAssetBundle.Editor
             // If copying subdirectories, copy them and their contents to new location.
             if (copySubDirs)
             {
-                foreach (DirectoryInfo subdir in dirs)
+                foreach (DirectoryInfo subdir in dir.GetDirectories())
                 {
                     string temppath = Path.Combine(destDirName, subdir.Name);
                     DirectoryCopy(subdir.FullName, temppath, copySubDirs);
