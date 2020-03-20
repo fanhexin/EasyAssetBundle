@@ -2,50 +2,20 @@ using System.Collections.Generic;
 using System.IO;
 using UniRx.Async;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using UnityEngine.Networking;
 
 namespace EasyAssetBundle
 {
-    public class RealAssetBundleLoader : IAssetBundleLoader
+    public partial class RealAssetBundleLoader : IAssetBundleLoader
     {
-        struct RealAssetBundle : IAssetBundle
-        {
-            readonly RealAssetBundleLoader _loader;
-            readonly AssetBundle _assetBundle;
-
-            public RealAssetBundle(RealAssetBundleLoader loader, AssetBundle assetBundle)
-            {
-                _loader = loader;
-                _assetBundle = assetBundle;
-            }
-
-            public T LoadAsset<T>(string name) where T : Object
-            {
-                return _assetBundle.LoadAsset<T>(name);
-            }
-
-            public async UniTask<T> LoadAssetAsync<T>(string name) where T : Object
-            {
-                Object asset = await _assetBundle.LoadAssetAsync<T>(name);
-                return asset as T;
-            }
-
-            public async UniTask LoadSceneAsync(string name, LoadSceneMode loadSceneMode = LoadSceneMode.Additive)
-            {
-                await SceneManager.LoadSceneAsync(name, loadSceneMode);
-            }
-
-            public void Unload(bool unloadAllLoadedObjects)
-            {
-                _loader.Unload(_assetBundle, unloadAllLoadedObjects);
-            }
-        }
-
         readonly string _basePath;
         AssetBundleManifest _manifest;
-        readonly Dictionary<string, (AssetBundle ab, int refCnt)> _abRefs = new Dictionary<string, (AssetBundle ab, int refCnt)>();
-        readonly List<UniTask<AssetBundle>> _abLoadTasks = new List<UniTask<AssetBundle>>();
-        readonly Dictionary<string, AssetBundleCreateRequest> _abLoadingTasks = new Dictionary<string, AssetBundleCreateRequest>();
+        
+        readonly Dictionary<string, SharedReference<AssetBundle>> _abRefs = 
+            new Dictionary<string, SharedReference<AssetBundle>>();
+
+        readonly Dictionary<string, UnityWebRequestAsyncOperation> _abLoadingTasks =
+            new Dictionary<string, UnityWebRequestAsyncOperation>();
         
         public RealAssetBundleLoader(string basePath, string manifestName)
         {
@@ -61,57 +31,63 @@ namespace EasyAssetBundle
             manifestAb.Unload(false);
         }
 
-        AssetBundle IncreaseRef(string name, AssetBundle ab = null)
+        SharedReference<AssetBundle> CreateSharedRef(AssetBundle ab)
         {
-            if (!_abRefs.TryGetValue(name, out var item))
+            return new SharedReference<AssetBundle>(ab, (bundle, b) =>
             {
-                if (ab != null)
-                {
-                    _abRefs[name] = (ab, 1);
-                }
-                return ab;
-            }
-
-            ++item.refCnt;
-            _abRefs[name] = item;
-            return item.ab;
+                _abRefs.Remove(bundle.name);
+                bundle.Unload((bool) b);
+            });
         }
 
         AssetBundle LoadAssetBundle(string name)
         {
+            if (_abRefs.TryGetValue(name, out var abRef))
+            {
+                return abRef.GetValue();
+            }
+            
             string path = Path.Combine(_basePath, name);
             var ab = AssetBundle.LoadFromFile(path);
-            _abRefs[name] = (ab, 1);
-            return ab;
+            abRef = CreateSharedRef(ab);
+            _abRefs[name] = abRef;
+            return abRef.GetValue();
         }
 
         async UniTask<AssetBundle> LoadAssetBundleAsync(string name)
         {
+            if (_abRefs.TryGetValue(name, out var abRef))
+            {
+                return abRef.GetValue();
+            }
+            
             if (!_abLoadingTasks.TryGetValue(name, out var req))
             {
                 string path = Path.Combine(_basePath, name);
-                req = AssetBundle.LoadFromFileAsync(path);
+                string url = $"file://{path}";
+                req = UnityWebRequestAssetBundle.GetAssetBundle(url).SendWebRequest();
                 _abLoadingTasks[name] = req;
             }
 
-            var ab = await req;
-            IncreaseRef(name, ab);
+            UnityWebRequest unityWebRequest = await req;
             _abLoadingTasks.Remove(name);
-            return ab;
+            
+            if (_abRefs.TryGetValue(name, out abRef))
+            {
+                return abRef.GetValue();
+            }
+            
+            abRef = CreateSharedRef(DownloadHandlerAssetBundle.GetContent(unityWebRequest));
+            unityWebRequest.Dispose();
+            _abRefs[name] = abRef;
+            return abRef.GetValue();
         }
         
         public async UniTask<IAssetBundle> LoadAsync(string name)
         {
-            await UpdateDependencies(name);
-            AssetBundle ab = IncreaseRef(name);
-            if (ab == null)
-            {
-                ab = await LoadAssetBundleAsync(name);
-                if (ab == null)
-                {
-                    return null;
-                }
-            }
+            string[] dependencies = _manifest.GetAllDependencies(name);
+            await UniTask.WhenAll(dependencies.Select(LoadAssetBundleAsync));
+            var ab = await LoadAssetBundleAsync(name);
             return new RealAssetBundle(this, ab);
         }
 
@@ -120,48 +96,11 @@ namespace EasyAssetBundle
             string[] dependencies = _manifest.GetAllDependencies(name);
             foreach (string dependency in dependencies)
             {
-                if (IncreaseRef(dependency) != null)
-                {
-                    continue;
-                }
-
-                string path = Path.Combine(_basePath, dependency);
-                _abRefs[dependency] = (AssetBundle.LoadFromFile(path), 1);
+                LoadAssetBundle(dependency);
             }
 
-            AssetBundle ab = IncreaseRef(name);
-            if (ab == null)
-            {
-                ab = LoadAssetBundle(name);
-                if (ab == null)
-                {
-                    return null;
-                }
-            }
+            AssetBundle ab = LoadAssetBundle(name);
             return new RealAssetBundle(this, ab);
-        }
-
-        async UniTask UpdateDependencies(string name)
-        {
-            _abLoadTasks.Clear();
-            string[] dependencies = _manifest.GetAllDependencies(name);
-            foreach (string dependency in dependencies)
-            {
-                if (IncreaseRef(dependency) != null)
-                {
-                    continue;
-                }
-
-                _abLoadTasks.Add(LoadAssetBundleAsync(dependency));
-            }
-
-            if (_abLoadTasks.Count == 0)
-            {
-                return;
-            }
-
-            await UniTask.WhenAll(_abLoadTasks);
-            _abLoadTasks.Clear();
         }
 
         void Unload(AssetBundle assetBundle, bool unloadAllLoadedObjects)
@@ -169,22 +108,9 @@ namespace EasyAssetBundle
             string[] dependencies = _manifest.GetAllDependencies(assetBundle.name);
             foreach (string dependency in dependencies)
             {
-                ReduceRef(dependency, unloadAllLoadedObjects);
+                _abRefs[dependency].Dispose(unloadAllLoadedObjects);
             }
-            ReduceRef(assetBundle.name, unloadAllLoadedObjects);
-        }
-
-        void ReduceRef(string name, bool unloadAllLoadedObjects)
-        {
-            var (ab, refCnt) = _abRefs[name];
-            if (refCnt == 1)
-            {
-                _abRefs.Remove(name);
-                ab.Unload(unloadAllLoadedObjects);
-                return;
-            }
-
-            _abRefs[name] = (ab, --refCnt);
+            _abRefs[assetBundle.name].Dispose(unloadAllLoadedObjects);
         }
     }
 }
