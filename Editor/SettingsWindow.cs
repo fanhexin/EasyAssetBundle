@@ -6,7 +6,7 @@ namespace EasyAssetBundle.Editor
     {
         Config _config;
 
-        [MenuItem("Window/EasyAssetbundle/Settings")]
+        [MenuItem("Window/EasyAssetbundle")]
         static void Init()
         {
             GetWindow<SettingsWindow>().Show();
