@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
+using System;
 using UnityEngine;
 using System.IO;
 
@@ -28,6 +29,10 @@ namespace EasyAssetBundle
                 return config;
             }
         }
+        
+        [SerializeField] private int _version;
+        [SerializeField] private string _remoteUrl;
+        [SerializeField] private Bundle[] _bundles;
 
         public static string streamingAssetsBundlePath =>
             Path.Combine(Application.streamingAssetsPath, Application.platform.ToGenericName());
@@ -60,5 +65,15 @@ namespace EasyAssetBundle
         public static string currentTargetCachePath =>
             Path.Combine(cacheBasePath , EditorUserBuildSettings.activeBuildTarget.ToString());
 #endif
+        
+        [Serializable]
+        public class Bundle
+        {
+            [SerializeField] private string _name;
+            [SerializeField] private BundleType _type;
+
+            public string name => _name;
+            public BundleType type => _type;
+        }
     }
 }
