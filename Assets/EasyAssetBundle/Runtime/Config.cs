@@ -2,25 +2,25 @@
 using UnityEditor;
 #endif
 using UnityEngine;
+using System.IO;
 
 namespace EasyAssetBundle
 {
     public class Config : ScriptableObject
     {
+        public const string FILE_NAME = "EasyAssetBundleSettings";
         public static Config instance
         {
             get
             {
-                var config = Resources.Load<Config>("EasyAssetBundleSettings");
+                var config = Resources.Load<Config>(FILE_NAME);
 #if UNITY_EDITOR
                 if (config == null)
                 {
                     config = CreateInstance<Config>();
-                    if (!AssetDatabase.IsValidFolder("Assets/Resources"))
-                    {
-                        AssetDatabase.CreateFolder("Assets", "Resources");
-                    }
-                    AssetDatabase.CreateAsset(config, "Assets/Resources/EasyAssetBundleSettings.asset");
+                    string resPath = "Assets/Resources";
+                    Directory.CreateDirectory(resPath);
+                    AssetDatabase.CreateAsset(config, Path.Combine(resPath, $"{FILE_NAME}.asset"));
                     AssetDatabase.Refresh();
                 }
 #endif
@@ -28,6 +28,9 @@ namespace EasyAssetBundle
                 return config;
             }
         }
+
+        public static string streamingAssetsBundlePath =>
+            Path.Combine(Application.streamingAssetsPath, Application.platform.ToGenericName());
         
 #if UNITY_EDITOR
         public const string MODE_SAVE_KEY = "easy_asset_bundle_mode";
@@ -50,10 +53,12 @@ namespace EasyAssetBundle
                     (int) BuildAssetBundleOptions.ChunkBasedCompression);
             set => EditorPrefs.SetInt(BUILD_OPTIONS_SAVE_KEY, (int)value);
         }
+
+        public static string cacheBasePath => Path.Combine(Path.GetDirectoryName(Application.dataPath), "Library",
+            "EasyAssetBundleCache");
+        
+        public static string currentTargetCachePath =>
+            Path.Combine(cacheBasePath , EditorUserBuildSettings.activeBuildTarget.ToString());
 #endif
-
-        [SerializeField] string _manifestName = "Manifest";
-
-        public string manifestName => _manifestName;
     }
 }

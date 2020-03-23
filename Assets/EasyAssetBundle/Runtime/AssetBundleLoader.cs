@@ -20,10 +20,10 @@ namespace EasyAssetBundle
                     }
                     else
                     {
-                        _assetBundleLoader = new RealAssetBundleLoader(Application.streamingAssetsPath, config.manifestName);
+                        _assetBundleLoader = new RealAssetBundleLoader(Config.currentTargetCachePath);
                     }
 #else
-                    _assetBundleLoader = new RealAssetBundleLoader(Application.streamingAssetsPath, config.manifestName);
+                    _assetBundleLoader = new RealAssetBundleLoader(Config.streamingAssetsBundlePath);
 #endif
                 }
 

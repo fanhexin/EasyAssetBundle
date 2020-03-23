@@ -17,10 +17,10 @@ namespace EasyAssetBundle
         readonly Dictionary<string, UnityWebRequestAsyncOperation> _abLoadingTasks =
             new Dictionary<string, UnityWebRequestAsyncOperation>();
         
-        public RealAssetBundleLoader(string basePath, string manifestName)
+        public RealAssetBundleLoader(string basePath)
         {
             _basePath = basePath;
-            Init(manifestName);
+            Init(Application.platform.ToGenericName());
         }
 
         void Init(string manifestName)
@@ -64,8 +64,10 @@ namespace EasyAssetBundle
             if (!_abLoadingTasks.TryGetValue(name, out var req))
             {
                 string path = Path.Combine(_basePath, name);
-                string url = $"file://{path}";
-                req = UnityWebRequestAssetBundle.GetAssetBundle(url).SendWebRequest();
+#if UNITY_EDITOR || UNITY_IOS
+                path = $"file://{path}";
+#endif
+                req = UnityWebRequestAssetBundle.GetAssetBundle(path).SendWebRequest();
                 _abLoadingTasks[name] = req;
             }
 

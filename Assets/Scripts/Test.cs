@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using EasyAssetBundle;
 
@@ -12,6 +14,12 @@ public class Test : MonoBehaviour
     private string _abName;
 
     List<IAssetBundle> _abs = new List<IAssetBundle>();
+    private Matrix4x4 _guiScaleMatrix;
+
+    private void Start()
+    {
+        _guiScaleMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(Screen.width / 360f, Screen.height / 640f, 1f));
+    }
 
     void OnDestroy()
     {
@@ -23,6 +31,7 @@ public class Test : MonoBehaviour
 
     void OnGUI()
     {
+        GUI.matrix = _guiScaleMatrix;
         GUILayout.Label("存在Virtual和Real两种模式。Virtual模式不需要打AssetBundle，Real模式反之，并会通过打好的AssetBundle加载资源。");
         GUILayout.Space(10);
         
@@ -31,43 +40,43 @@ public class Test : MonoBehaviour
         
         GUILayout.Label("1. 直接通过字符串bundle名加载:");
         
-        if (GUILayout.Button("同步加载"))
+        if (GUILayout.Button("同步加载", GUILayout.ExpandWidth(false)))
         {
             var ab = AssetBundleLoader.instance.Load("red_cube");
             _abs.Add(ab);
             Instantiate(ab.LoadAsset<GameObject>("RedCube"));
         }
-        else if (GUILayout.Button("异步加载"))
+        else if (GUILayout.Button("异步加载", GUILayout.ExpandWidth(false)))
         {
             LoadAsyncFromName();
         }
         
         GUILayout.Label("2. 通过AssetBundleReference加载:");
 
-        if (GUILayout.Button("同步加载"))
+        if (GUILayout.Button("同步加载", GUILayout.ExpandWidth(false)))
         {
             var ab = _blueCubeAbRef.Load();
             _abs.Add(ab);
             Instantiate(ab.LoadAsset<GameObject>("BlueCube"));
         }
-        else if (GUILayout.Button("异步加载"))
+        else if (GUILayout.Button("异步加载", GUILayout.ExpandWidth(false)))
         {
             LoadAsyncFromAssetBundleReference();
         }
         
         GUILayout.Label("3. 通过AssetReference加载:");
         
-        if (GUILayout.Button("同步加载"))
+        if (GUILayout.Button("同步加载", GUILayout.ExpandWidth(false)))
         {
             Instantiate(_greenCubeRef.Load<GameObject>());
         }
-        else if (GUILayout.Button("异步加载"))
+        else if (GUILayout.Button("异步加载", GUILayout.ExpandWidth(false)))
         {
             LoadAsyncFromAssetReference();
         }
 
         GUILayout.Label("Real模式下Unload(true)会发现材质丢失，prefab和材质都被从内存中卸载。");
-        if (GUILayout.Button("Unload!"))
+        if (GUILayout.Button("Unload!", GUILayout.ExpandWidth(false)))
         {
             OnDestroy();
         }
