@@ -1,5 +1,3 @@
-using UnityEngine;
-
 namespace EasyAssetBundle
 {
     public static class AssetBundleLoader
