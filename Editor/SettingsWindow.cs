@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -10,8 +11,12 @@ namespace EasyAssetBundle.Editor
     public class SettingsWindow : EditorWindow
     {
         private static readonly GUIContent _contentBuild = new GUIContent("Build");
-
+        private TreeViewState _treeViewState;
+        private BundleTreeView _bundleTreeView;
+        
         Config _config;
+        private SerializedObject _configSo;
+        private SearchField _searchField;
 
         [MenuItem("Window/EasyAssetBundle")]
         static void Init()
@@ -23,12 +28,38 @@ namespace EasyAssetBundle.Editor
 
         void OnEnable()
         {
+            _searchField = new SearchField();
+            if (_treeViewState == null)
+                _treeViewState = new TreeViewState();
+            
             _config = Config.instance;
+            _configSo = new SerializedObject(_config);
+
+            var bundlesSp = _config.GetBundlesSp(_configSo);
+            _bundleTreeView = new BundleTreeView(_treeViewState, bundlesSp);
+            string[] assetBundleNames = AssetDatabase.GetAllAssetBundleNames();
+            if (bundlesSp.arraySize == 0 && assetBundleNames.Length != 0)
+            {
+                bool ret = EditorUtility.DisplayDialog("Notice",
+                    "Bundle list is empty. Would you like to import existing assetbundles?",
+                    "ok",
+                    "cancel");
+
+                if (ret)
+                {
+                    _bundleTreeView.Import(assetBundleNames);
+                }
+            }
+            _bundleTreeView.multiColumnHeader.ResizeToFit();
         }
 
         void OnGUI()
         {
             EditorGUILayout.BeginHorizontal(EditorStyles.toolbar, GUILayout.ExpandWidth(true));
+
+            _bundleTreeView.searchString = _searchField.OnToolbarGUI(_bundleTreeView.searchString);
+            
+            GUILayout.Space(5);
 
             _config.buildOptions = (BuildAssetBundleOptions) EditorGUILayout.EnumFlagsField("Build Options",
                 _config.buildOptions, EditorStyles.toolbarPopup);
@@ -69,6 +100,13 @@ namespace EasyAssetBundle.Editor
             });
 
             EditorGUILayout.EndHorizontal();
+            
+            EditorGUI.BeginChangeCheck();
+            _bundleTreeView.OnGUI(new Rect(0, EditorStyles.toolbar.fixedHeight, position.width, position.height));
+            if (EditorGUI.EndChangeCheck())
+            {
+                _configSo.ApplyModifiedProperties();
+            }
         }
 
         void DropdownMenuButton(GUIContent label, Action<GenericMenu> addMenuItems)

@@ -2,12 +2,13 @@
 using UnityEditor;
 #endif
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 
 namespace EasyAssetBundle
 {
-    public class Config : ScriptableObject
+    public class Config : ScriptableObject, ISerializationCallbackReceiver
     {
         public const string FILE_NAME = "EasyAssetBundleSettings";
         public static Config instance
@@ -29,15 +30,35 @@ namespace EasyAssetBundle
                 return config;
             }
         }
-        
-        [SerializeField] private int _version;
+
+        [SerializeField] private int _version = 1;
         [SerializeField] private string _remoteUrl;
         [SerializeField] private Bundle[] _bundles;
+
+        public IReadOnlyList<Bundle> bundles => _bundles;
 
         public static string streamingAssetsBundlePath =>
             Path.Combine(Application.streamingAssetsPath, Application.platform.ToGenericName());
         
 #if UNITY_EDITOR
+        public SerializedProperty GetBundlesSp(SerializedObject so)
+        {
+            return so.FindProperty(nameof(_bundles));
+        }
+
+        void InitBundles(SerializedObject so)
+        {
+            AssetDatabase.RemoveUnusedAssetBundleNames();    
+            var bundlesSp = so.FindProperty(nameof(_bundles));
+            foreach (string name in AssetDatabase.GetAllAssetBundleNames())
+            {
+                var item = bundlesSp.GetArrayElementAtIndex(bundlesSp.arraySize++);
+                item.FindPropertyRelative("_name").stringValue = name;
+            }
+
+            so.ApplyModifiedProperties();
+        }
+        
         public const string MODE_SAVE_KEY = "easy_asset_bundle_mode";
         public enum Mode
         {
@@ -69,11 +90,21 @@ namespace EasyAssetBundle
         [Serializable]
         public class Bundle
         {
+            [SerializeField] private string _guid;
             [SerializeField] private string _name;
             [SerializeField] private BundleType _type;
 
+            public string guid => _guid;
             public string name => _name;
             public BundleType type => _type;
+        }
+
+        public void OnBeforeSerialize()
+        {
+        }
+
+        public void OnAfterDeserialize()
+        {
         }
     }
 }
