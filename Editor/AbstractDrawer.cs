@@ -16,7 +16,7 @@ namespace EasyAssetBundle.Editor
             int indent = EditorGUI.indentLevel;
             EditorGUI.indentLevel = 0;
 
-            EditorGUI.HelpBox(position, GetValue(), MessageType.None);
+            EditorGUI.HelpBox(position, GetViewText(), MessageType.None);
             
             var dragArea = position;
 
@@ -42,11 +42,6 @@ namespace EasyAssetBundle.Editor
                             string assetPath = AssetDatabase.GetAssetPath(obj);
                             string abName = AssetDatabase.GetImplicitAssetBundleName(assetPath);
                             string varName = AssetDatabase.GetImplicitAssetBundleVariantName(assetPath);
-                            if (string.IsNullOrEmpty(abName))
-                            {
-                                continue;
-                            }
-
                             UpdateValue(obj, abName, varName);
                             property.serializedObject.ApplyModifiedProperties();
                         }
@@ -69,7 +64,7 @@ namespace EasyAssetBundle.Editor
             EditorGUI.EndProperty();           
         }
 
-        protected abstract string GetValue();
+        protected abstract string GetViewText();
 
         protected abstract void UpdateValue(Object obj, string abName, string varName);
     }

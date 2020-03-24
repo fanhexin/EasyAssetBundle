@@ -14,6 +14,18 @@ namespace EasyAssetBundle
         {
             return new VirtualAssetBundle(name);
         }
+
+        public UniTask<IAssetBundle> LoadByGuidAsync(string guid)
+        {
+            string name = Config.instance.guid2Bundle[guid].name;
+            return LoadAsync(name);
+        }
+
+        public IAssetBundle LoadByGuid(string guid)
+        {
+            string name = Config.instance.guid2Bundle[guid].name;
+            return Load(name);
+        }
     }
 }
 #endif

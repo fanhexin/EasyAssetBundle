@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
+using System.Linq;
 
 namespace EasyAssetBundle
 {
@@ -34,7 +35,10 @@ namespace EasyAssetBundle
         [SerializeField] private int _version = 1;
         [SerializeField] private string _remoteUrl;
         [SerializeField] private Bundle[] _bundles;
+        
+        private Dictionary<string, Bundle> _guid2BundleDic;
 
+        public IReadOnlyDictionary<string, Bundle> guid2Bundle => _guid2BundleDic;
         public IReadOnlyList<Bundle> bundles => _bundles;
 
         public static string streamingAssetsBundlePath =>
@@ -46,19 +50,6 @@ namespace EasyAssetBundle
             return so.FindProperty(nameof(_bundles));
         }
 
-        void InitBundles(SerializedObject so)
-        {
-            AssetDatabase.RemoveUnusedAssetBundleNames();    
-            var bundlesSp = so.FindProperty(nameof(_bundles));
-            foreach (string name in AssetDatabase.GetAllAssetBundleNames())
-            {
-                var item = bundlesSp.GetArrayElementAtIndex(bundlesSp.arraySize++);
-                item.FindPropertyRelative("_name").stringValue = name;
-            }
-
-            so.ApplyModifiedProperties();
-        }
-        
         public const string MODE_SAVE_KEY = "easy_asset_bundle_mode";
         public enum Mode
         {
@@ -105,6 +96,7 @@ namespace EasyAssetBundle
 
         public void OnAfterDeserialize()
         {
+            _guid2BundleDic = _bundles.ToDictionary(x => x.guid);
         }
     }
 }

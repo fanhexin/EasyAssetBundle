@@ -6,5 +6,7 @@ namespace EasyAssetBundle
     {
         UniTask<IAssetBundle> LoadAsync(string name);
         IAssetBundle Load(string name);
+        UniTask<IAssetBundle> LoadByGuidAsync(string guid);
+        IAssetBundle LoadByGuid(string guid);
     }
 }
