@@ -12,4 +12,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d9d0bd93e6144a419330d779be067237, type: 3}
   m_Name: EasyAssetBundleSettings
   m_EditorClassIdentifier: 
-  _manifestName: Manifest
+  _version: 0
+  _remoteUrl: 
+  _bundles:
+  - _guid: 98bd06dc-2f68-40b4-97f5-7662aa2d269a
+    _name: blue_mat
+    _type: 0
+  - _guid: 24b8c755-436d-4d1b-abff-551595b7e6da
+    _name: green_mat
+    _type: 0
+  - _guid: 3c2c2a1e-a7b6-4093-800b-109f845fd68c
+    _name: red_mat
+    _type: 0
+  - _guid: 6a42a67a-3753-419e-a1ff-c40c32d2840d
+    _name: bluecube.prefab
+    _type: 0
+  - _guid: 503f8071-1b74-4c8e-a310-561d47d57dfa
+    _name: bluesphere.prefab
+    _type: 0
+  - _guid: 4f63e86c-1314-4155-bf7f-9a8b732e422c
+    _name: greencube.prefab
+    _type: 0
+  - _guid: 443403f6-49d9-42b7-98af-dd2629cffead
+    _name: greensphere.prefab
+    _type: 0
+  - _guid: cd8070ba-2498-4aba-9387-20f2fd442bb3
+    _name: redcube.prefab
+    _type: 0
+  - _guid: e8da66d0-1b12-400f-8749-37d329340503
+    _name: redsphere.prefab
+    _type: 0
