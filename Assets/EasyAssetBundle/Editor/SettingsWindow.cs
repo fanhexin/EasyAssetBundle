@@ -10,6 +10,7 @@ namespace EasyAssetBundle.Editor
 {
     public class SettingsWindow : EditorWindow
     {
+        public static SettingsWindow instance { get; private set; }
         private static readonly GUIContent _contentBuild = new GUIContent("Build");
         private TreeViewState _treeViewState;
         private BundleTreeView _bundleTreeView;
@@ -28,6 +29,7 @@ namespace EasyAssetBundle.Editor
 
         void OnEnable()
         {
+            instance = this;
             _searchField = new SearchField();
             if (_treeViewState == null)
                 _treeViewState = new TreeViewState();
@@ -51,6 +53,11 @@ namespace EasyAssetBundle.Editor
                 }
             }
             _bundleTreeView.multiColumnHeader.ResizeToFit();
+        }
+
+        private void OnDestroy()
+        {
+            instance = null;
         }
 
         void OnGUI()
@@ -144,6 +151,12 @@ namespace EasyAssetBundle.Editor
             }
 
             menu.DropDown(rect);
+        }
+
+        public void Reload()
+        {
+            _configSo.Update();
+            _bundleTreeView.Reload();
         }
     }
 }

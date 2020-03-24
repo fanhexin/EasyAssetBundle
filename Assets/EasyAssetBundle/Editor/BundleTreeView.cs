@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
@@ -9,6 +8,7 @@ using Object = UnityEngine.Object;
 
 namespace EasyAssetBundle.Editor
 {
+    // todo 添加对undo的支持
     public class BundleTreeView : TreeView
     {
         private readonly SerializedProperty _bundlesSp;
@@ -124,11 +124,17 @@ namespace EasyAssetBundle.Editor
 
         protected override void RenameEnded(RenameEndedArgs args)
         {
-            if (!args.acceptedRename)
+            if (!args.acceptedRename || args.originalName == args.newName)
             {
                 return;
             }
 
+            if (_bundlesSp.Any(args.newName))
+            {
+                SettingsWindow.instance.ShowNotification(new GUIContent($"Existing name: {args.newName}!"));
+                return;
+            }
+            
             AssetBundleRename(args.originalName, args.newName);
             var nameSp = _bundlesSp.GetArrayElementAtIndex(args.itemID - 1)
                 .FindPropertyRelative("_name");
@@ -239,6 +245,12 @@ namespace EasyAssetBundle.Editor
         protected override void ContextClickedItem(int id)
         {
             var menu = new GenericMenu();
+            menu.AddItem(new GUIContent("Ping"), false, () =>
+            {
+                string abName = _bundlesSp.GetArrayElementAtIndex(id - 1).FindPropertyRelative("_name").stringValue;
+                EditorGUIUtility.PingObject(LoadAsset(abName));
+            });
+            
             menu.AddItem(new GUIContent("Delete"), false, () =>
             {
                 // Undo.RecordObject(_bundlesSp.serializedObject.targetObject, "delete");
@@ -254,12 +266,6 @@ namespace EasyAssetBundle.Editor
                 }
                 Reload();
             });
-            
-            menu.AddItem(new GUIContent("Ping"), false, () =>
-            {
-                string abName = _bundlesSp.GetArrayElementAtIndex(id - 1).FindPropertyRelative("_name").stringValue;
-                EditorGUIUtility.PingObject(LoadAsset(abName));
-            });
             menu.ShowAsContext();
         }
 
@@ -271,10 +277,10 @@ namespace EasyAssetBundle.Editor
             }
 
             bool changed = false;
-            for (int i = 0; i < DragAndDrop.objectReferences.Length; i++)
+            foreach (Object o in DragAndDrop.objectReferences)
             {
-                string path = DragAndDrop.paths[i];
-                if (!AddBundleByPath(path)) continue;
+                if (string.IsNullOrEmpty(_bundlesSp.AddBundle(o))) 
+                    continue;
                 changed = true;
             }
 
@@ -283,9 +289,7 @@ namespace EasyAssetBundle.Editor
                 return DragAndDropVisualMode.Rejected;
             }
 
-            _bundlesSp.serializedObject.ApplyModifiedProperties();
             Reload();
-
             return DragAndDropVisualMode.Copy;
         }
 
@@ -293,54 +297,10 @@ namespace EasyAssetBundle.Editor
         {
             foreach (string assetBundleName in assetBundleNames)
             {
-                AddBundleByName(assetBundleName);
+                _bundlesSp.AddBundle(LoadAsset(assetBundleName));
             }
 
-            _bundlesSp.serializedObject.ApplyModifiedProperties();
             Reload();
-        }
-
-        private bool AddBundleByName(string abName)
-        {
-            string[] paths = AssetDatabase.GetAssetPathsFromAssetBundle(abName);
-            if (paths == null || paths.Length == 0)
-            {
-                return false;
-            }
-
-            return AddBundleByPath(paths.First());
-        }
-
-        private bool AddBundleByPath(string assetPath)
-        {
-            string abName = AssetDatabase.GetImplicitAssetBundleName(assetPath);
-            if (!string.IsNullOrEmpty(abName))
-            {
-                if (GetRows().Any(x => x.displayName == abName))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                abName = Path.GetFileName(assetPath).ToLower();
-            }
-
-            if (GetRows().Any(x => x.displayName == abName))
-            {
-                Object obj = AssetDatabase.LoadAssetAtPath<Object>(assetPath);
-                abName += $"_conflict_{obj.GetHashCode()}";
-            }
-
-            var importer = AssetImporter.GetAtPath(assetPath);
-            importer.assetBundleName = abName;
-            importer.SaveAndReimport();
-
-            var newItem = _bundlesSp.GetArrayElementAtIndex(_bundlesSp.arraySize++);
-            newItem.FindPropertyRelative("_guid").stringValue = Guid.NewGuid().ToString();
-            newItem.FindPropertyRelative("_name").stringValue = abName;
-            newItem.FindPropertyRelative("_type").enumValueIndex = 0;
-            return true;
         }
 
         private static MultiColumnHeader CreateColumnHeader()

@@ -15,30 +15,33 @@ MonoBehaviour:
   _version: 0
   _remoteUrl: 
   _bundles:
-  - _guid: 98bd06dc-2f68-40b4-97f5-7662aa2d269a
-    _name: blue_mat
+  - _guid: 5d9dba3ff190d42448f6f319672dc871
+    _name: blue.mat
     _type: 0
-  - _guid: 24b8c755-436d-4d1b-abff-551595b7e6da
-    _name: green_mat
+  - _guid: 4eefa8fe2fcd843a0bb764a36a1de9d6
+    _name: green.mat
     _type: 0
-  - _guid: 3c2c2a1e-a7b6-4093-800b-109f845fd68c
-    _name: red_mat
+  - _guid: 77f17698f7aa7412aad0c1e5295970c8
+    _name: plane.mat
     _type: 0
-  - _guid: 6a42a67a-3753-419e-a1ff-c40c32d2840d
+  - _guid: a7b42ee17e5a241ad868d66b4a2fa41a
+    _name: red.mat
+    _type: 0
+  - _guid: 92cc6aa55703e42278534df4a6661b74
     _name: bluecube.prefab
     _type: 0
-  - _guid: 503f8071-1b74-4c8e-a310-561d47d57dfa
+  - _guid: 404152dadc43e40599284b865b02a414
     _name: bluesphere.prefab
     _type: 0
-  - _guid: 4f63e86c-1314-4155-bf7f-9a8b732e422c
+  - _guid: fb4ff6172324f4160b952bef0acead15
     _name: greencube.prefab
     _type: 0
-  - _guid: 443403f6-49d9-42b7-98af-dd2629cffead
+  - _guid: e5e3e632348344c61ba10fe16dfd6ba2
     _name: greensphere.prefab
     _type: 0
-  - _guid: cd8070ba-2498-4aba-9387-20f2fd442bb3
+  - _guid: bf1c5548ab9b749f1bd2b4c3d3a24848
     _name: redcube.prefab
     _type: 0
-  - _guid: e8da66d0-1b12-400f-8749-37d329340503
+  - _guid: 11b9adeed3b9c446c9c650a43543784b
     _name: redsphere.prefab
     _type: 0

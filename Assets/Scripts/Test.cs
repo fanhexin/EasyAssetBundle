@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using EasyAssetBundle;
 
@@ -10,6 +8,8 @@ public class Test : MonoBehaviour
     [SerializeField] AssetBundleReference _blueSphereAbRef;
     [SerializeField] AssetReference _greenCubeRef;
     [SerializeField] AssetReference _greenSphereRef;
+    [SerializeField] AssetReference _redSphereRef;
+    [SerializeField] AssetReference _redCubeRef;
     [SerializeField, AssetBundleName("mat")]
     private string _abName;
 
@@ -27,6 +27,8 @@ public class Test : MonoBehaviour
         _abs.Clear();
         _greenCubeRef.Unload();
         _greenSphereRef.Unload();
+        _redSphereRef.Unload();
+        _redCubeRef.Unload();
     }
 
     void OnGUI()
@@ -42,9 +44,7 @@ public class Test : MonoBehaviour
         
         if (GUILayout.Button("同步加载", GUILayout.ExpandWidth(false)))
         {
-            var ab = AssetBundleLoader.instance.Load("red_cube");
-            _abs.Add(ab);
-            Instantiate(ab.LoadAsset<GameObject>("RedCube"));
+            Instantiate(_redCubeRef.Load<GameObject>());
         }
         else if (GUILayout.Button("异步加载", GUILayout.ExpandWidth(false)))
         {
@@ -96,8 +96,7 @@ public class Test : MonoBehaviour
 
     async void LoadAsyncFromName()
     {
-        var ab = await AssetBundleLoader.instance.LoadAsync("red_sphere");
-        _abs.Add(ab);
-        Instantiate(await ab.LoadAssetAsync<GameObject>("RedSphere"));
+        var go = await _redSphereRef.LoadAsync<GameObject>();
+        Instantiate(go);
     }
 }

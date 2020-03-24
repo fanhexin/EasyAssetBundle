@@ -105,6 +105,18 @@ namespace EasyAssetBundle
             return new RealAssetBundle(this, ab);
         }
 
+        public UniTask<IAssetBundle> LoadByGuidAsync(string guid)
+        {
+            string name = Config.instance.guid2Bundle[guid].name;
+            return LoadAsync(name);
+        }
+
+        public IAssetBundle LoadByGuid(string guid)
+        {
+            string name = Config.instance.guid2Bundle[guid].name;
+            return Load(name);
+        }
+
         void Unload(AssetBundle assetBundle, bool unloadAllLoadedObjects)
         {
             string[] dependencies = _manifest.GetAllDependencies(assetBundle.name);

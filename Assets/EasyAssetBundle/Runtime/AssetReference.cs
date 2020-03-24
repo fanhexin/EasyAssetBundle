@@ -9,7 +9,7 @@ namespace EasyAssetBundle
     public class AssetReference
     {
         [SerializeField]
-        string _abName;
+        string _guid;
 
         [SerializeField]
         string _assetName;
@@ -20,7 +20,7 @@ namespace EasyAssetBundle
         {
             if (_assetBundle == null)
             {
-                _assetBundle = await AssetBundleLoader.instance.LoadAsync(_abName);
+                _assetBundle = await AssetBundleLoader.instance.LoadByGuidAsync(_guid);
             }
 
             return await _assetBundle.LoadAssetAsync<T>(_assetName);
@@ -30,7 +30,7 @@ namespace EasyAssetBundle
         {
             if (_assetBundle == null)
             {
-                _assetBundle = AssetBundleLoader.instance.Load(_abName);
+                _assetBundle = AssetBundleLoader.instance.LoadByGuid(_guid);
             }
 
             return _assetBundle.LoadAsset<T>(_assetName);

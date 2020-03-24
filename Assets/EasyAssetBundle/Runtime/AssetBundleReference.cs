@@ -8,16 +8,16 @@ namespace EasyAssetBundle
     public class AssetBundleReference
     {
         [SerializeField]
-        string _name;
+        string _guid;
         
         public async UniTask<IAssetBundle> LoadAsync()
         {
-            return await AssetBundleLoader.instance.LoadAsync(_name);
+            return await AssetBundleLoader.instance.LoadByGuidAsync(_guid);
         }
 
         public IAssetBundle Load()
         {
-            return AssetBundleLoader.instance.Load(_name);
+            return AssetBundleLoader.instance.LoadByGuid(_guid);
         }
     }
 }
