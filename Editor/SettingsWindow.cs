@@ -18,6 +18,7 @@ namespace EasyAssetBundle.Editor
         Config _config;
         private SerializedObject _configSo;
         private SearchField _searchField;
+        private SerializedProperty _versionSp;
 
         [MenuItem("Window/EasyAssetBundle")]
         static void Init()
@@ -36,8 +37,9 @@ namespace EasyAssetBundle.Editor
             
             _config = Config.instance;
             _configSo = new SerializedObject(_config);
+            _versionSp = Config.GetVersionSp(_configSo);
 
-            var bundlesSp = _config.GetBundlesSp(_configSo);
+            var bundlesSp = Config.GetBundlesSp(_configSo);
             _bundleTreeView = new BundleTreeView(_treeViewState, bundlesSp);
             string[] assetBundleNames = AssetDatabase.GetAllAssetBundleNames();
             if (bundlesSp.arraySize == 0 && assetBundleNames.Length != 0)
@@ -68,6 +70,9 @@ namespace EasyAssetBundle.Editor
             
             GUILayout.Space(5);
 
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.PropertyField(_versionSp);
+            
             _config.buildOptions = (BuildAssetBundleOptions) EditorGUILayout.EnumFlagsField("Build Options",
                 _config.buildOptions, EditorStyles.toolbarPopup);
 
@@ -99,16 +104,20 @@ namespace EasyAssetBundle.Editor
             DropdownMenuButton(_contentBuild, menu =>
             {
                 menu.AddItem(new GUIContent("Build Content"), false,
-                    () => AssetBundleBuilder.Build(_config.buildOptions, processors));
+                    () =>
+                    {
+                        AssetBundleBuilder.Build(_config.buildOptions, processors);
+                        ShowNotification(new GUIContent("Build success!"));
+                    });
                 menu.AddItem(new GUIContent("Try Build"), false,
                     () => AssetBundleBuilder.Build(_config.buildOptions | BuildAssetBundleOptions.DryRunBuild,
                         processors));
                 menu.AddItem(new GUIContent("Clear Cache"), false, AssetBundleBuilder.ClearCache);
+                menu.AddItem(new GUIContent("Clear Runtime Cache"), false, () => Caching.ClearCache());
             });
 
             EditorGUILayout.EndHorizontal();
             
-            EditorGUI.BeginChangeCheck();
             _bundleTreeView.OnGUI(new Rect(0, EditorStyles.toolbar.fixedHeight, position.width, position.height));
             if (EditorGUI.EndChangeCheck())
             {
