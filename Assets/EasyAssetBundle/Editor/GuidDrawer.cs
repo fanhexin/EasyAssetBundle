@@ -37,7 +37,7 @@ namespace EasyAssetBundle.Editor
                 var so = new SerializedObject(Config.instance);
                 var bundles = Config.GetBundlesSp(so);
                 _guid.stringValue = bundles.AddBundle(obj);
-                SettingsWindow.instance?.Reload();
+                MainWindow.instance?.Reload();
             }
             else
             {
