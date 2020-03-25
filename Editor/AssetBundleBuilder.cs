@@ -54,7 +54,36 @@ namespace EasyAssetBundle.Editor
                 BuildPipeline.BuildAssetBundles(cachePath, buildOptions, buildTarget);
             }
             
-            File.WriteAllText(Path.Combine(cachePath, "version"), Config.instance.version.ToString()); 
+            File.WriteAllText(Path.Combine(cachePath, "version"), Config.instance.version.ToString());
+
+            if (!string.IsNullOrEmpty(Config.instance.remoteUrl))
+            {
+                CopyToHostedData(buildTarget);
+            }
+        }
+
+        private static void CopyToHostedData(BuildTarget buildTarget)
+        {
+            string path = $"Assets/../HostedData/{buildTarget}";
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, true);
+            }
+
+            Directory.CreateDirectory(path);
+            DirectoryCopy(Config.currentTargetCachePath, path, true, f =>
+            {
+                // manifest文件要放行
+                if (f.Name == EditorUserBuildSettings.activeBuildTarget.ToString() || f.Name == "version")
+                {
+                    return true;
+                }
+
+                // 排除掉.manifest文件，其只用来在编辑器端做增量构建用，运行时并不需哟
+                string extensionName = Path.GetExtension(f.Name);
+                return extensionName != ".manifest" &&
+                       Config.instance.bundles.Any(b => b.name == f.Name && b.type != BundleType.Static);
+            });
         }
 
         public static void CopyToStreamingAssets()

@@ -9,6 +9,7 @@ using Object = UnityEngine.Object;
 namespace EasyAssetBundle.Editor
 {
     // todo 添加对undo的支持
+    // todo 列表中的bundlename实时通过Assetdatabase读取，只在Build的时候将bundlename写入config中
     public class BundleTreeView : TreeView
     {
         private readonly SerializedProperty _bundlesSp;
@@ -131,7 +132,7 @@ namespace EasyAssetBundle.Editor
 
             if (_bundlesSp.Any(args.newName))
             {
-                SettingsWindow.instance.ShowNotification(new GUIContent($"Existing name: {args.newName}!"));
+                MainWindow.instance.ShowNotification(new GUIContent($"Existing name: {args.newName}!"));
                 return;
             }
             
