@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -53,22 +54,33 @@ namespace EasyAssetBundle.Editor
                 BuildPipeline.BuildAssetBundles(cachePath, buildOptions, buildTarget);
             }
             
+            File.WriteAllText(Path.Combine(cachePath, "version"), Config.instance.version.ToString()); 
         }
 
         public static void CopyToStreamingAssets()
         {
             Directory.CreateDirectory(Config.streamingAssetsBundlePath);
-            DirectoryCopy(Config.currentTargetCachePath, Config.streamingAssetsBundlePath, true);
-            AssetDatabase.Refresh();
+            DirectoryCopy(Config.currentTargetCachePath, Config.streamingAssetsBundlePath, true, x =>
+            {
+                // manifest文件要放行
+                if (x.Name == EditorUserBuildSettings.activeBuildTarget.ToString())
+                {
+                    return true;
+                }
+                
+                // 排除掉.manifest文件，其只用来在编辑器端做增量构建用，运行时并不需哟
+                string extensionName = Path.GetExtension(x.Name);
+                return extensionName != ".manifest" && 
+                       Config.instance.bundles.Any(b => b.name == x.Name && b.type != BundleType.Remote);
+            });
         }
 
         public static void DeleteStreamingAssetsBundlePath()
         {
             Directory.Delete(Config.streamingAssetsBundlePath, true);
-            AssetDatabase.Refresh();
         }
         
-        static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
+        static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs, Func<FileInfo, bool> filter = null)
         {
             // Get the subdirectories for the specified directory.
             DirectoryInfo dir = new DirectoryInfo(sourceDirName);
@@ -87,9 +99,12 @@ namespace EasyAssetBundle.Editor
             }
         
             // Get the files in the directory and copy them to the new location.
-            // 排除掉.manifest文件，其只用来在编辑器端做增量构建用，运行时并不需哟
-            var files = dir.EnumerateFiles()
-                .Where(x => Path.GetExtension(x.Name) != ".manifest");
+            var files = dir.EnumerateFiles();
+            if (filter != null)
+            {
+                files = files.Where(filter);
+            }
+            
             foreach (FileInfo file in files)
             {
                 string temppath = Path.Combine(destDirName, file.Name);
@@ -102,7 +117,7 @@ namespace EasyAssetBundle.Editor
                 foreach (DirectoryInfo subdir in dir.GetDirectories())
                 {
                     string temppath = Path.Combine(destDirName, subdir.Name);
-                    DirectoryCopy(subdir.FullName, temppath, copySubDirs);
+                    DirectoryCopy(subdir.FullName, temppath, copySubDirs, filter);
                 }
             }
         }

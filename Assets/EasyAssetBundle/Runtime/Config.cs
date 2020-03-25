@@ -37,17 +37,25 @@ namespace EasyAssetBundle
         [SerializeField] private Bundle[] _bundles;
         
         private Dictionary<string, Bundle> _guid2BundleDic;
+        private Dictionary<string, Bundle> _name2BundleDic;
 
         public IReadOnlyDictionary<string, Bundle> guid2Bundle => _guid2BundleDic;
+        public IReadOnlyDictionary<string, Bundle> name2BundleDic => _name2BundleDic;
         public IReadOnlyList<Bundle> bundles => _bundles;
-
+        public int version => _version;
+        public string remoteUrl => _remoteUrl;
         public static string streamingAssetsBundlePath =>
             Path.Combine(Application.streamingAssetsPath, Application.platform.ToGenericName());
         
 #if UNITY_EDITOR
-        public SerializedProperty GetBundlesSp(SerializedObject so)
+        public static SerializedProperty GetBundlesSp(SerializedObject so)
         {
             return so.FindProperty(nameof(_bundles));
+        }
+
+        public static SerializedProperty GetVersionSp(SerializedObject so)
+        {
+            return so.FindProperty(nameof(_version));
         }
 
         public const string MODE_SAVE_KEY = "easy_asset_bundle_mode";
@@ -97,6 +105,7 @@ namespace EasyAssetBundle
         public void OnAfterDeserialize()
         {
             _guid2BundleDic = _bundles.ToDictionary(x => x.guid);
+            _name2BundleDic = _bundles.ToDictionary(x => x.name);
         }
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using UniRx.Async;
@@ -8,27 +9,95 @@ namespace EasyAssetBundle
 {
     public partial class RealAssetBundleLoader : IAssetBundleLoader
     {
+        private const string VERSION_KEY = "easyassetbundle_version";
+        
         readonly string _basePath;
-        AssetBundleManifest _manifest;
+        private readonly UniTask<AssetBundleManifest> _remoteManifest;
+        private readonly UniTask<AssetBundleManifest> _localManifest;
         
         readonly Dictionary<string, SharedReference<AssetBundle>> _abRefs = 
             new Dictionary<string, SharedReference<AssetBundle>>();
 
         readonly Dictionary<string, UnityWebRequestAsyncOperation> _abLoadingTasks =
             new Dictionary<string, UnityWebRequestAsyncOperation>();
+
+        private readonly string _remoteUrl;
+
+        private string _manifestName => Application.platform.ToGenericName();
         
         public RealAssetBundleLoader(string basePath)
         {
             _basePath = basePath;
-            Init(Application.platform.ToGenericName());
+            
+            var config = Config.instance;
+            _remoteUrl = string.IsNullOrEmpty(config.remoteUrl) ? string.Empty : $"{config.remoteUrl}/{_manifestName}";
+            
+            _localManifest = LoadManifestAsync(GetLocalPath(_manifestName), Config.instance.version);
+            _remoteManifest = LoadRemoteManifestAsync();
         }
 
-        void Init(string manifestName)
+        async UniTask<int> LoadVersionAsync()
         {
-            string path = Path.Combine(_basePath, manifestName);
-            AssetBundle manifestAb = AssetBundle.LoadFromFile(path);
-            _manifest = manifestAb.LoadAsset<AssetBundleManifest>("AssetBundleManifest");
-            manifestAb.Unload(false);
+            var config = Config.instance;
+            int version = PlayerPrefs.GetInt(VERSION_KEY, config.version);
+
+            if (string.IsNullOrEmpty(_remoteUrl))
+            {
+                return version;
+            }
+
+            using (var req = await UnityWebRequest
+                .Get($"{_remoteUrl}/version")
+                .SendWebRequest())
+            {
+                if (req.isNetworkError ||
+                    req.isHttpError ||
+                    !int.TryParse(req.downloadHandler.text, out int remoteVersion))
+                {
+                    return version;
+                }
+
+                if (remoteVersion <= version)
+                {
+                    return version;
+                }
+
+                version = remoteVersion;
+                PlayerPrefs.SetInt(VERSION_KEY, version);
+            }
+
+            return version;
+        }
+
+        async UniTask<AssetBundleManifest> LoadManifestAsync(string url, int version)
+        {
+            AssetBundle ab;
+            using (var req = await UnityWebRequestAssetBundle
+                .GetAssetBundle(url, (uint) version, 0)
+                .SendWebRequest())
+            {
+                if (req.isNetworkError || req.isHttpError)
+                {
+                    return null;
+                }
+                ab = DownloadHandlerAssetBundle.GetContent(req);
+            }
+
+            var manifest = await ab.LoadAssetAsync<AssetBundleManifest>(nameof(AssetBundleManifest));
+            ab.Unload(false);
+            return manifest as AssetBundleManifest;
+        }
+
+        async UniTask<AssetBundleManifest> LoadRemoteManifestAsync()
+        {
+            var manifest = await _localManifest;
+            if (string.IsNullOrEmpty(_remoteUrl))
+            {
+                return manifest;
+            }
+            
+            int version = await LoadVersionAsync();
+            return await LoadManifestAsync(GetRemoteAbUrl(_manifestName), version);
         }
 
         SharedReference<AssetBundle> CreateSharedRef(AssetBundle ab)
@@ -63,15 +132,12 @@ namespace EasyAssetBundle
             
             if (!_abLoadingTasks.TryGetValue(name, out var req))
             {
-                string path = Path.Combine(_basePath, name);
-#if UNITY_EDITOR || UNITY_IOS
-                path = $"file://{path}";
-#endif
-                req = UnityWebRequestAssetBundle.GetAssetBundle(path).SendWebRequest();
+                req = await CreateLoadAssetBundleReq(name);
                 _abLoadingTasks[name] = req;
             }
 
             UnityWebRequest unityWebRequest = await req;
+            // todo 发生error的异常处理或者抛出异常
             _abLoadingTasks.Remove(name);
             
             if (_abRefs.TryGetValue(name, out abRef))
@@ -84,10 +150,55 @@ namespace EasyAssetBundle
             _abRefs[name] = abRef;
             return abRef.GetValue();
         }
+
+        // todo 重构缩减重复代码
+        async UniTask<UnityWebRequestAsyncOperation> CreateLoadAssetBundleReq(string name)
+        {
+            var config = Config.instance;
+            string url = string.Empty;
+            Hash128 hash = (await _remoteManifest).GetAssetBundleHash(name);
+            
+            // 找不到的是增量更新的AssetBundle，直接远程加载处理，因为只可能在远端
+            if (config.name2BundleDic.TryGetValue(name, out var bundle))
+            {
+                switch (bundle.type)
+                {
+                    case BundleType.Static:
+                        url = GetLocalPath(name);
+                        hash = (await _localManifest).GetAssetBundleHash(name);
+                        break;
+                    case BundleType.Patchable:
+                        var localHash = (await _localManifest).GetAssetBundleHash(name);
+                        if (!Caching.IsVersionCached(GetLocalPath(name), localHash))
+                        {
+                            url = GetLocalPath(name);
+                            hash = localHash;
+                            break;
+                        }
+
+                        url = GetRemoteAbUrl(name);
+                        hash = (await _remoteManifest).GetAssetBundleHash(name);
+                        break;
+                    case BundleType.Remote:
+                        url = GetRemoteAbUrl(name);
+                        hash = (await _remoteManifest).GetAssetBundleHash(name);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+            else
+            {
+                url = GetRemoteAbUrl(name);
+                hash = (await _remoteManifest).GetAssetBundleHash(name);
+            }
+            
+            return UnityWebRequestAssetBundle.GetAssetBundle(url, hash).SendWebRequest();
+        }
         
         public async UniTask<IAssetBundle> LoadAsync(string name)
         {
-            string[] dependencies = _manifest.GetAllDependencies(name);
+            string[] dependencies = (await _remoteManifest).GetAllDependencies(name);
             await UniTask.WhenAll(dependencies.Select(LoadAssetBundleAsync));
             var ab = await LoadAssetBundleAsync(name);
             return new RealAssetBundle(this, ab);
@@ -95,7 +206,7 @@ namespace EasyAssetBundle
 
         public IAssetBundle Load(string name)
         {
-            string[] dependencies = _manifest.GetAllDependencies(name);
+            string[] dependencies = _remoteManifest.Result.GetAllDependencies(name);
             foreach (string dependency in dependencies)
             {
                 LoadAssetBundle(dependency);
@@ -117,14 +228,28 @@ namespace EasyAssetBundle
             return Load(name);
         }
 
-        void Unload(AssetBundle assetBundle, bool unloadAllLoadedObjects)
+        async void Unload(AssetBundle assetBundle, bool unloadAllLoadedObjects)
         {
-            string[] dependencies = _manifest.GetAllDependencies(assetBundle.name);
+            string[] dependencies = (await _remoteManifest).GetAllDependencies(assetBundle.name);
             foreach (string dependency in dependencies)
             {
                 _abRefs[dependency].Dispose(unloadAllLoadedObjects);
             }
             _abRefs[assetBundle.name].Dispose(unloadAllLoadedObjects);
+        }
+
+        string GetRemoteAbUrl(string name)
+        {
+            return $"{_remoteUrl}/{name}";
+        }
+
+        string GetLocalPath(string name)
+        {
+            string path = Path.Combine(_basePath, name);
+#if UNITY_EDITOR || UNITY_IOS
+            path = $"file://{path}";
+#endif
+            return path;
         }
     }
 }
