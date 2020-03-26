@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using UnityEngine;
 using EasyAssetBundle;
 
@@ -44,6 +45,13 @@ public class Test : MonoBehaviour
 
     private static async Task LoadAsync(AssetReference ar)
     {
-        Instantiate(await ar.LoadAsync<GameObject>());
+        try
+        {
+            Instantiate(await ar.LoadAsync<GameObject>());
+        }
+        catch (Exception e)
+        {
+            Debug.Log($"Exception: {e}");
+        }
     }
 }

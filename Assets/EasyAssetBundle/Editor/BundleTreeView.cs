@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using EasyAssetBundle.Common;
 using UnityEditor;
@@ -13,7 +14,6 @@ namespace EasyAssetBundle.Editor
     // todo 列表中的bundlename实时通过Assetdatabase读取，只在Build的时候将bundlename写入config中
     // todo 添加针对每个不同的bundle设置压缩格式
     // todo 添加对单个bundle包含多个文件的支持
-    // todo 右键菜单添加批量去除后缀名
     public class BundleTreeView : TreeView
     {
         private readonly SerializedProperty _bundlesSp;
@@ -129,23 +129,39 @@ namespace EasyAssetBundle.Editor
 
         protected override void RenameEnded(RenameEndedArgs args)
         {
-            if (!args.acceptedRename || args.originalName == args.newName)
+            if (!args.acceptedRename)
             {
                 return;
             }
 
-            if (_bundlesSp.Any(args.newName))
+            Rename(args.itemID, args.newName);
+            Save();
+            Reload();
+        }
+
+        void Save()
+        {
+            _bundlesSp.serializedObject.ApplyModifiedProperties();
+        }
+
+        void Rename(int id, string newName)
+        {
+            if (_bundlesSp.Any(newName))
             {
-                MainWindow.instance.ShowNotification(new GUIContent($"Existing name: {args.newName}!"));
+                MainWindow.instance.ShowNotification(new GUIContent($"Existing name: {newName}!"));
                 return;
             }
             
-            AssetBundleRename(args.originalName, args.newName);
-            var nameSp = _bundlesSp.GetArrayElementAtIndex(args.itemID - 1)
+            var nameSp = _bundlesSp.GetArrayElementAtIndex(id - 1)
                 .FindPropertyRelative("_name");
-            nameSp.stringValue = args.newName;
-            _bundlesSp.serializedObject.ApplyModifiedProperties();
-            Reload();
+            string oldName = nameSp.stringValue;
+            if (oldName == newName)
+            {
+                return;
+            }
+            
+            AssetBundleRename(oldName, newName);
+            nameSp.stringValue = newName;
         }
 
         void AssetBundleRename(string originAbName, string newAbName)
@@ -250,6 +266,18 @@ namespace EasyAssetBundle.Editor
         protected override void ContextClickedItem(int id)
         {
             var menu = new GenericMenu();
+            menu.AddItem(new GUIContent("Remove Extension"), false, () =>
+            {
+                foreach (int selectId in GetSelection())
+                {
+                    string abName = _bundlesSp.GetArrayElementAtIndex(selectId - 1)
+                        .FindPropertyRelative("_name").stringValue;
+                    Rename(selectId, Path.GetFileNameWithoutExtension(abName));
+                    Save();
+                    Reload();
+                }
+            });
+            
             menu.AddItem(new GUIContent("Ping"), false, () =>
             {
                 string abName = _bundlesSp.GetArrayElementAtIndex(id - 1).FindPropertyRelative("_name").stringValue;
