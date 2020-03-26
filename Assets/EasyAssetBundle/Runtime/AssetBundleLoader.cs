@@ -1,3 +1,7 @@
+#if UNITY_EDITOR
+using EasyAssetBundle.Common.Editor;
+#endif
+
 namespace EasyAssetBundle
 {
     public static class AssetBundleLoader
@@ -10,18 +14,18 @@ namespace EasyAssetBundle
             {
                 if (_assetBundleLoader == null)
                 {
-                    Config config = Config.instance;
 #if UNITY_EDITOR
-                    if (config.mode == Config.Mode.Virtual)
+                    var settings = Settings.instance;
+                    if (settings.mode == Settings.Mode.Virtual)
                     {
-                        _assetBundleLoader = new VirtualAssetBundleLoader();
+                        _assetBundleLoader = new VirtualAssetBundleLoader(settings.manifest);
                     }
                     else
                     {
-                        _assetBundleLoader = new RealAssetBundleLoader(Config.currentTargetCachePath);
+                        _assetBundleLoader = new RealAssetBundleLoader(Settings.currentTargetCachePath, settings.manifest);
                     }
 #else
-                    _assetBundleLoader = new RealAssetBundleLoader(Config.streamingAssetsBundlePath);
+                    _assetBundleLoader = new RealAssetBundleLoader(Config.streamingAssetsBundlePath, Config.instance.manifest);
 #endif
                 }
 

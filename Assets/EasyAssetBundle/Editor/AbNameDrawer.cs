@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using EasyAssetBundle.Common.Editor;
 using UnityEditor;
 using UnityEngine;
 
@@ -13,7 +14,7 @@ namespace EasyAssetBundle.Editor
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             var attr = attribute as AssetBundleNameAttribute;
-            _options = _options ?? Config.instance.bundles
+            _options = _options ?? Settings.instance.manifest.bundles
                 .Select(x => x.name)
                 .Where(x => x.Contains(attr.filter))
                 .ToArray();

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EasyAssetBundle.Common.Editor;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
@@ -15,10 +16,8 @@ namespace EasyAssetBundle.Editor
         private TreeViewState _treeViewState;
         private BundleTreeView _bundleTreeView;
         
-        Config _config;
-        private SerializedObject _configSo;
+        private SerializedObject _settingsSo;
         private SearchField _searchField;
-        private SerializedProperty _versionSp;
 
         [MenuItem("Window/EasyAssetBundle")]
         static void Init()
@@ -35,11 +34,9 @@ namespace EasyAssetBundle.Editor
             if (_treeViewState == null)
                 _treeViewState = new TreeViewState();
             
-            _config = Config.instance;
-            _configSo = new SerializedObject(_config);
-            _versionSp = Config.GetVersionSp(_configSo);
+            _settingsSo = new SerializedObject(Settings.instance);
 
-            var bundlesSp = Config.GetBundlesSp(_configSo);
+            var bundlesSp = Settings.GetBundlesSp(_settingsSo);
             _bundleTreeView = new BundleTreeView(_treeViewState, bundlesSp);
             string[] assetBundleNames = AssetDatabase.GetAllAssetBundleNames();
             if (bundlesSp.arraySize == 0 && assetBundleNames.Length != 0)
@@ -78,19 +75,18 @@ namespace EasyAssetBundle.Editor
             }
             
             EditorGUI.BeginChangeCheck();
-            // EditorGUILayout.LabelField($"version: {_versionSp.intValue}", GUILayout.ExpandWidth(false));
             
-            EnumDropDownButton(new GUIContent($"Mode: {_config.mode}"), _config.mode, mode =>
-            {
-                if (mode == Config.Mode.Real && !AssetBundleBuilder.hasBuilded)
-                {
-                    ShowNotification(new GUIContent("Please build assetbundle first!"));
-                }
-                else
-                {
-                    _config.mode = mode;
-                }
-            });
+            // EnumDropDownButton(new GUIContent($"Mode: {_config.mode}"), _config.mode, mode =>
+            // {
+            //     if (mode == Config.Mode.Real && !AssetBundleBuilder.hasBuilded)
+            //     {
+            //         ShowNotification(new GUIContent("Please build assetbundle first!"));
+            //     }
+            //     else
+            //     {
+            //         _config.mode = mode;
+            //     }
+            // });
 
             IEnumerable<AbstractBuildProcessor> processors = AssetBundleBuilder.GetProcessors();
             if (processors.Any())
@@ -123,7 +119,7 @@ namespace EasyAssetBundle.Editor
                 menu.AddItem(new GUIContent("Try Build"), false,
                     () => AssetBundleBuilder.Build(Settings.instance.buildOptions | BuildAssetBundleOptions.DryRunBuild,
                         processors));
-                menu.AddItem(new GUIContent("Clear Cache"), false, AssetBundleBuilder.ClearCache);
+                menu.AddItem(new GUIContent("Clear Build Cache"), false, AssetBundleBuilder.ClearCache);
                 menu.AddItem(new GUIContent("Clear Runtime Cache"), false, () => Caching.ClearCache());
             });
 
@@ -132,7 +128,7 @@ namespace EasyAssetBundle.Editor
             _bundleTreeView.OnGUI(new Rect(0, EditorStyles.toolbar.fixedHeight, position.width, position.height));
             if (EditorGUI.EndChangeCheck())
             {
-                _configSo.ApplyModifiedProperties();
+                _settingsSo.ApplyModifiedProperties();
             }
         }
 
@@ -175,7 +171,7 @@ namespace EasyAssetBundle.Editor
 
         public void Reload()
         {
-            _configSo.Update();
+            _settingsSo.Update();
             _bundleTreeView.Reload();
         }
     }

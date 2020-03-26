@@ -8,7 +8,7 @@ using System.Net;
 using System.Net.Sockets;
 using UnityEngine;
 
-namespace EasyAssetBundle.Editor
+namespace EasyAssetBundle.Common.Editor
 {
     public class SimpleHTTPServer
     {

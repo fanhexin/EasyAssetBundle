@@ -1,10 +1,6 @@
 {
-    "name": "EasyAssetBundle",
-    "references": [
-        "UniRx.Async",
-        "EasyAssetBundle.Common",
-        "EasyAssetBundle.Common.Editor"
-    ],
+    "name": "EasyAssetBundle.Common",
+    "references": [],
     "optionalUnityReferences": [],
     "includePlatforms": [
         "Android",

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EasyAssetBundle.Common;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
@@ -10,6 +11,9 @@ namespace EasyAssetBundle.Editor
 {
     // todo 添加对undo的支持
     // todo 列表中的bundlename实时通过Assetdatabase读取，只在Build的时候将bundlename写入config中
+    // todo 添加针对每个不同的bundle设置压缩格式
+    // todo 添加对单个bundle包含多个文件的支持
+    // todo 右键菜单添加批量去除后缀名
     public class BundleTreeView : TreeView
     {
         private readonly SerializedProperty _bundlesSp;

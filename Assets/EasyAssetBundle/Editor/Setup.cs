@@ -1,9 +1,13 @@
+using System.IO;
+using EasyAssetBundle.Common;
 using UnityEditor;
+using EasyAssetBundle.Common.Editor;
+using UnityEngine;
 
 namespace EasyAssetBundle.Editor
 {
     [InitializeOnLoad]
-    public static class Setup
+    internal static class Setup
     {
         static Setup()
         {
@@ -12,22 +16,26 @@ namespace EasyAssetBundle.Editor
 
         private static void OnBuildPlayer(BuildPlayerOptions options)
         {
-            if (!AssetBundleBuilder.hasBuilded)
+            AssetBundleBuilder.Build(Settings.instance.buildOptions);
+
+            var config = ScriptableObject.CreateInstance<Config>();
+            var settings = Settings.instance;
+            config.manifest = new Manifest();
+            config.manifest.Init(settings.manifest);
+            if (settings.httpServiceSettings.enabled)
             {
-                AssetBundleBuilder.Build(Settings.instance.buildOptions);    
+                var so = new SerializedObject(config);
+                so.FindProperty("_manifest").FindPropertyRelative("_cdnUrl").stringValue = settings.simulateUrl;
+                so.ApplyModifiedProperties();
             }
-            
-            var so = new SerializedObject(Config.instance);
-            so.FindProperty("_version").intValue = Settings.instance.version;
-            
-            var httpServer = HttpServerSettings.instance;
-            var url = httpServer.enabled ? httpServer.url : Settings.instance.remoteUrl;
-            so.FindProperty("_remoteUrl").stringValue = url;
-            so.ApplyModifiedProperties();
+            string path = Path.Combine("Assets", "Resources", $"{Config.FILE_NAME}.asset");
+            AssetDatabase.CreateAsset(config, path);
 
             AssetBundleBuilder.CopyToStreamingAssets();
             BuildPlayerWindow.DefaultBuildMethods.BuildPlayer(options);
             AssetBundleBuilder.DeleteStreamingAssetsBundlePath();
+
+            AssetDatabase.DeleteAsset(path);
         }
     }
 }

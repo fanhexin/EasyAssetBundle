@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using EasyAssetBundle.Common;
+using EasyAssetBundle.Common.Editor;
 using UnityEditor;
 
 namespace EasyAssetBundle.Editor
 {
     public static class AssetBundleBuilder
     {
-        public static bool hasBuilded => Directory.Exists(Config.currentTargetCachePath);
-
         public static void Build(BuildAssetBundleOptions buildOptions)
         {
             Build(buildOptions, GetProcessors());
@@ -32,14 +32,14 @@ namespace EasyAssetBundle.Editor
 
         public static void ClearCache()
         {
-            Directory.Delete(Config.currentTargetCachePath, true);
+            Directory.Delete(Settings.currentTargetCachePath, true);
         }
         
         static void Build(BuildTarget buildTarget,
             BuildAssetBundleOptions buildOptions = BuildAssetBundleOptions.ChunkBasedCompression,
             params AssetBundleBuild[] buildMap)
         {
-            string cachePath = Path.Combine(Config.cacheBasePath, buildTarget.ToString());
+            string cachePath = Path.Combine(Settings.cacheBasePath, buildTarget.ToString());
             if (!Directory.Exists(cachePath))
             {
                 Directory.CreateDirectory(cachePath);
@@ -54,9 +54,9 @@ namespace EasyAssetBundle.Editor
                 BuildPipeline.BuildAssetBundles(cachePath, buildOptions, buildTarget);
             }
             
-            File.WriteAllText(Path.Combine(cachePath, "version"), Config.instance.version.ToString());
+            File.WriteAllText(Path.Combine(cachePath, "version"), Settings.instance.manifest.version.ToString());
 
-            if (!string.IsNullOrEmpty(Config.instance.remoteUrl))
+            if (Settings.instance.httpServiceSettings.enabled)
             {
                 CopyToHostedData(buildTarget);
             }
@@ -71,7 +71,7 @@ namespace EasyAssetBundle.Editor
             }
 
             Directory.CreateDirectory(path);
-            DirectoryCopy(Config.currentTargetCachePath, path, true, f =>
+            DirectoryCopy(Settings.currentTargetCachePath, path, true, f =>
             {
                 // manifest文件要放行
                 if (f.Name == EditorUserBuildSettings.activeBuildTarget.ToString() || f.Name == "version")
@@ -82,14 +82,14 @@ namespace EasyAssetBundle.Editor
                 // 排除掉.manifest文件，其只用来在编辑器端做增量构建用，运行时并不需哟
                 string extensionName = Path.GetExtension(f.Name);
                 return extensionName != ".manifest" &&
-                       Config.instance.bundles.Any(b => b.name == f.Name && b.type != BundleType.Static);
+                       Settings.instance.manifest.bundles.Any(b => b.name == f.Name && b.type != BundleType.Static);
             });
         }
 
         public static void CopyToStreamingAssets()
         {
             Directory.CreateDirectory(Config.streamingAssetsBundlePath);
-            DirectoryCopy(Config.currentTargetCachePath, Config.streamingAssetsBundlePath, true, x =>
+            DirectoryCopy(Settings.currentTargetCachePath, Config.streamingAssetsBundlePath, true, x =>
             {
                 // manifest文件要放行
                 if (x.Name == EditorUserBuildSettings.activeBuildTarget.ToString())
@@ -100,7 +100,7 @@ namespace EasyAssetBundle.Editor
                 // 排除掉.manifest文件，其只用来在编辑器端做增量构建用，运行时并不需哟
                 string extensionName = Path.GetExtension(x.Name);
                 return extensionName != ".manifest" && 
-                       Config.instance.bundles.Any(b => b.name == x.Name && b.type != BundleType.Remote);
+                       Settings.instance.manifest.bundles.Any(b => b.name == x.Name && b.type != BundleType.Remote);
             });
         }
 
