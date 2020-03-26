@@ -14,10 +14,5 @@ namespace EasyAssetBundle
         {
             return await AssetBundleLoader.instance.LoadByGuidAsync(_guid);
         }
-
-        public IAssetBundle Load()
-        {
-            return AssetBundleLoader.instance.LoadByGuid(_guid);
-        }
     }
 }

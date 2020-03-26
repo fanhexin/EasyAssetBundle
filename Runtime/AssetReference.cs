@@ -16,6 +16,8 @@ namespace EasyAssetBundle
 
         IAssetBundle _assetBundle;
 
+        public string assetName => _assetName;
+
         public async UniTask<T> LoadAsync<T>() where T : Object
         {
             if (_assetBundle == null)
@@ -24,16 +26,6 @@ namespace EasyAssetBundle
             }
 
             return await _assetBundle.LoadAssetAsync<T>(_assetName);
-        }
-
-        public T Load<T>() where T : Object
-        {
-            if (_assetBundle == null)
-            {
-                _assetBundle = AssetBundleLoader.instance.LoadByGuid(_guid);
-            }
-
-            return _assetBundle.LoadAsset<T>(_assetName);
         }
 
         public void Unload(bool unloadAllLoadedObjects = true)

@@ -18,7 +18,7 @@ namespace EasyAssetBundle
             _assetBundleName = assetBundleName;
         }
 
-        public T LoadAsset<T>(string name) where T : Object
+        private T LoadAsset<T>(string name) where T : Object
         {
             string[] paths = AssetDatabase.GetAssetPathsFromAssetBundleAndAssetName(_assetBundleName, name);
             if (paths.Length == 0)
