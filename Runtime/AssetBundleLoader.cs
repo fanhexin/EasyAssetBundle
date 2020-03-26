@@ -18,14 +18,14 @@ namespace EasyAssetBundle
                     var settings = Settings.instance;
                     if (settings.mode == Settings.Mode.Virtual)
                     {
-                        _assetBundleLoader = new VirtualAssetBundleLoader(settings.manifest);
+                        _assetBundleLoader = new VirtualAssetBundleLoader(settings.runtimeSettings);
                     }
                     else
                     {
-                        _assetBundleLoader = new RealAssetBundleLoader(Settings.currentTargetCachePath, settings.manifest);
+                        _assetBundleLoader = new RealAssetBundleLoader(Settings.currentTargetCachePath, settings.runtimeSettings);
                     }
 #else
-                    _assetBundleLoader = new RealAssetBundleLoader(Config.streamingAssetsBundlePath, Config.instance.manifest);
+                    _assetBundleLoader = new RealAssetBundleLoader(Config.streamingAssetsBundlePath, Config.instance.runtimeSettings);
 #endif
                 }
 

@@ -20,12 +20,12 @@ namespace EasyAssetBundle.Editor
 
             var config = ScriptableObject.CreateInstance<Config>();
             var settings = Settings.instance;
-            config.manifest = new Manifest();
-            config.manifest.Init(settings.manifest);
+            config.runtimeSettings = new RuntimeSettings();
+            config.runtimeSettings.Init(settings.runtimeSettings);
             if (settings.httpServiceSettings.enabled)
             {
                 var so = new SerializedObject(config);
-                so.FindProperty("_manifest").FindPropertyRelative("_cdnUrl").stringValue = settings.simulateUrl;
+                so.FindProperty("_runtimeSettings").FindPropertyRelative("_cdnUrl").stringValue = settings.simulateUrl;
                 so.ApplyModifiedProperties();
             }
             string path = Path.Combine("Assets", "Resources", $"{Config.FILE_NAME}.asset");

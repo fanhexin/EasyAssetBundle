@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using UniRx.Async;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -8,6 +9,9 @@ namespace EasyAssetBundle
     [Serializable]
     public class AssetReference
     {
+        private static Lazy<ProgressDispatcher> _progressDispatcher = 
+            new Lazy<ProgressDispatcher>(() => new ProgressDispatcher());
+        
         [SerializeField]
         string _guid;
 
@@ -18,14 +22,20 @@ namespace EasyAssetBundle
 
         public string assetName => _assetName;
 
-        public async UniTask<T> LoadAsync<T>() where T : Object
+        public async UniTask<T> LoadAsync<T>(IProgress<float> progress = null, CancellationToken token = default) 
+            where T : Object
         {
+            ProgressDispatcher.Handler? handler = null;
             if (_assetBundle == null)
             {
-                _assetBundle = await AssetBundleLoader.instance.LoadByGuidAsync(_guid);
+                handler = _progressDispatcher.Value.Create(progress);
+                progress = handler.Value.CreateProgress();
+                _assetBundle = await AssetBundleLoader.instance.LoadByGuidAsync(_guid, handler.Value.CreateProgress(), token);
             }
 
-            return await _assetBundle.LoadAssetAsync<T>(_assetName);
+            var ret = await _assetBundle.LoadAssetAsync<T>(_assetName, progress, token);
+            handler?.Dispose();
+            return ret;
         }
 
         public void Unload(bool unloadAllLoadedObjects = true)

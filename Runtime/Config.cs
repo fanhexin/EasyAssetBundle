@@ -22,13 +22,13 @@ namespace EasyAssetBundle
             }
         }
 
-        [SerializeField] private Manifest _manifest;
+        [SerializeField] private RuntimeSettings _runtimeSettings;
 
-        public Manifest manifest
+        public RuntimeSettings runtimeSettings
         {
-            get => _manifest;
+            get => _runtimeSettings;
 #if UNITY_EDITOR
-            set => _manifest = value;
+            set => _runtimeSettings = value;
 #endif
         }
 

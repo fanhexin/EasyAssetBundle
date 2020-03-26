@@ -6,14 +6,16 @@ using UnityEngine;
 namespace EasyAssetBundle.Common
 {
     [Serializable]
-    public class Manifest : ISerializationCallbackReceiver
+    public class RuntimeSettings : ISerializationCallbackReceiver
     {
         [SerializeField] private int _version = 1;
         [SerializeField] private string _cdnUrl;
+        [SerializeField] private int _timeout = 3;
         [SerializeField] private Bundle[] _bundles;
 
         public int version => _version;
         public string cdnUrl => _cdnUrl;
+        public int timeout => _timeout;
         public IReadOnlyList<Bundle> bundles => _bundles;
         
         public IReadOnlyDictionary<string, Bundle> guid2BundleDic { get; private set; }
@@ -29,11 +31,11 @@ namespace EasyAssetBundle.Common
             name2BundleDic = _bundles.ToDictionary(x => x.name);
         }
 
-        public void Init(Manifest manifest)
+        public void Init(RuntimeSettings runtimeSettings)
         {
-            _version = manifest._version;
-            _cdnUrl = manifest._cdnUrl;
-            _bundles = manifest._bundles;
+            _version = runtimeSettings._version;
+            _cdnUrl = runtimeSettings._cdnUrl;
+            _bundles = runtimeSettings._bundles;
         }
     }
 }

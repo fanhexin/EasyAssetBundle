@@ -27,17 +27,17 @@ namespace EasyAssetBundle.Common.Editor
         }
 
         [SerializeField] private HttpServiceSettings _httpServiceSettings;
-        [SerializeField] private Manifest _manifest;
+        [SerializeField] private RuntimeSettings _runtimeSettings;
         [SerializeField] private BuildAssetBundleOptions _buildOptions = BuildAssetBundleOptions.ChunkBasedCompression;
         [SerializeField] private Mode _mode;
 
         public static SerializedProperty GetBundlesSp(SerializedObject so)
         {
-            return so.FindProperty(nameof(_manifest)).FindPropertyRelative("_bundles");
+            return so.FindProperty(nameof(_runtimeSettings)).FindPropertyRelative("_bundles");
         }
 
         public HttpServiceSettings httpServiceSettings => _httpServiceSettings;
-        public Manifest manifest => _manifest;
+        public RuntimeSettings runtimeSettings => _runtimeSettings;
         public BuildAssetBundleOptions buildOptions => _buildOptions;
         public Mode mode => _mode;
         

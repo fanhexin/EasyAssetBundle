@@ -54,7 +54,7 @@ namespace EasyAssetBundle.Editor
                 BuildPipeline.BuildAssetBundles(cachePath, buildOptions, buildTarget);
             }
             
-            File.WriteAllText(Path.Combine(cachePath, "version"), Settings.instance.manifest.version.ToString());
+            File.WriteAllText(Path.Combine(cachePath, "version"), Settings.instance.runtimeSettings.version.ToString());
 
             if (Settings.instance.httpServiceSettings.enabled)
             {
@@ -82,7 +82,7 @@ namespace EasyAssetBundle.Editor
                 // 排除掉.manifest文件，其只用来在编辑器端做增量构建用，运行时并不需哟
                 string extensionName = Path.GetExtension(f.Name);
                 return extensionName != ".manifest" &&
-                       Settings.instance.manifest.bundles.Any(b => b.name == f.Name && b.type != BundleType.Static);
+                       Settings.instance.runtimeSettings.bundles.Any(b => b.name == f.Name && b.type != BundleType.Static);
             });
         }
 
@@ -100,7 +100,7 @@ namespace EasyAssetBundle.Editor
                 // 排除掉.manifest文件，其只用来在编辑器端做增量构建用，运行时并不需哟
                 string extensionName = Path.GetExtension(x.Name);
                 return extensionName != ".manifest" && 
-                       Settings.instance.manifest.bundles.Any(b => b.name == x.Name && b.type != BundleType.Remote);
+                       Settings.instance.runtimeSettings.bundles.Any(b => b.name == x.Name && b.type != BundleType.Remote);
             });
         }
 
