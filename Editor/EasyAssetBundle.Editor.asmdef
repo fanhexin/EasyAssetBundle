@@ -1,7 +1,9 @@
 {
     "name": "EasyAssetBundle.Editor",
     "references": [
-        "EasyAssetBundle"
+        "EasyAssetBundle",
+        "EasyAssetBundle.Common",
+        "EasyAssetBundle.Common.Editor"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [

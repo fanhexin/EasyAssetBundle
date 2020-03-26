@@ -1,4 +1,6 @@
 using System.Linq;
+using EasyAssetBundle.Common;
+using EasyAssetBundle.Common.Editor;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -14,7 +16,7 @@ namespace EasyAssetBundle.Editor
         {
             get
             {
-                if (Config.instance.guid2Bundle.TryGetValue(_guid.stringValue, out Config.Bundle bundle))
+                if (Settings.instance.manifest.guid2BundleDic.TryGetValue(_guid.stringValue, out Bundle bundle))
                 {
                     return bundle.name;
                 }
@@ -31,11 +33,11 @@ namespace EasyAssetBundle.Editor
 
         protected override void UpdateValue(Object obj, string abName, string varName)
         {
-            var bundle = Config.instance.bundles.FirstOrDefault(x => x.name == abName);
+            var bundle = Settings.instance.manifest.bundles.FirstOrDefault(x => x.name == abName);
             if (bundle == null)
             {
-                var so = new SerializedObject(Config.instance);
-                var bundles = Config.GetBundlesSp(so);
+                var so = new SerializedObject(Settings.instance);
+                var bundles = so.FindProperty("_manifest").FindPropertyRelative("_bundles");
                 _guid.stringValue = bundles.AddBundle(obj);
                 MainWindow.instance?.Reload();
             }

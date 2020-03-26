@@ -1,4 +1,4 @@
-namespace EasyAssetBundle
+namespace EasyAssetBundle.Common
 {
     public enum BundleType
     {
