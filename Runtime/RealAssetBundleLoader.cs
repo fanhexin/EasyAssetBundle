@@ -136,7 +136,6 @@ namespace EasyAssetBundle
                 throw new Exception($"{nameof(unityWebRequest)} {unityWebRequest.error}");
             }
             
-            // todo 发生error的异常处理或者抛出异常
             // todo 添加取消操作和report progress的能力
             _abLoadingTasks.Remove(name);
 
