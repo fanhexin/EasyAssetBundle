@@ -115,20 +115,6 @@ namespace EasyAssetBundle
             });
         }
 
-        AssetBundle LoadAssetBundle(string name)
-        {
-            if (_abRefs.TryGetValue(name, out var abRef))
-            {
-                return abRef.GetValue();
-            }
-
-            string path = Path.Combine(_basePath, name);
-            var ab = AssetBundle.LoadFromFile(path);
-            abRef = CreateSharedRef(ab);
-            _abRefs[name] = abRef;
-            return abRef.GetValue();
-        }
-
         async UniTask<AssetBundle> LoadAssetBundleAsync(string name)
         {
             if (_abRefs.TryGetValue(name, out var abRef))
@@ -143,6 +129,13 @@ namespace EasyAssetBundle
             }
 
             UnityWebRequest unityWebRequest = await req;
+            if (unityWebRequest.isHttpError || unityWebRequest.isNetworkError)
+            {
+                _abLoadingTasks.Remove(name);
+                unityWebRequest.Dispose();
+                throw new Exception($"{nameof(unityWebRequest)} {unityWebRequest.error}");
+            }
+            
             // todo 发生error的异常处理或者抛出异常
             // todo 添加取消操作和report progress的能力
             _abLoadingTasks.Remove(name);
@@ -210,28 +203,10 @@ namespace EasyAssetBundle
             return new RealAssetBundle(this, ab);
         }
 
-        public IAssetBundle Load(string name)
-        {
-            string[] dependencies = _remoteManifest.Result.GetAllDependencies(name);
-            foreach (string dependency in dependencies)
-            {
-                LoadAssetBundle(dependency);
-            }
-
-            AssetBundle ab = LoadAssetBundle(name);
-            return new RealAssetBundle(this, ab);
-        }
-
         public UniTask<IAssetBundle> LoadByGuidAsync(string guid)
         {
             string name = _manifest.guid2BundleDic[guid].name;
             return LoadAsync(name);
-        }
-
-        public IAssetBundle LoadByGuid(string guid)
-        {
-            string name = _manifest.guid2BundleDic[guid].name;
-            return Load(name);
         }
 
         async void Unload(AssetBundle assetBundle, bool unloadAllLoadedObjects)

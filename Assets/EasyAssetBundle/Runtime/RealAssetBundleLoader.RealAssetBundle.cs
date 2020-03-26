@@ -17,11 +17,6 @@ namespace EasyAssetBundle
                 _assetBundle = assetBundle;
             }
 
-            public T LoadAsset<T>(string name) where T : Object
-            {
-                return _assetBundle.LoadAsset<T>(name);
-            }
-
             public async UniTask<T> LoadAssetAsync<T>(string name) where T : Object
             {
                 Object asset = await _assetBundle.LoadAssetAsync<T>(name);

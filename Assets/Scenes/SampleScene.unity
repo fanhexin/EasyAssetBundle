@@ -302,6 +302,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 546cd850b306f4893bfd6f03433a5c33, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _assetReferences:
+  - _guid: 92cc6aa55703e42278534df4a6661b74
+    _assetName: BlueCube
+  - _guid: 404152dadc43e40599284b865b02a414
+    _assetName: BlueSphere
+  - _guid: fb4ff6172324f4160b952bef0acead15
+    _assetName: GreenCube
+  - _guid: e5e3e632348344c61ba10fe16dfd6ba2
+    _assetName: GreenSphere
+  - _guid: bf1c5548ab9b749f1bd2b4c3d3a24848
+    _assetName: RedCube
+  - _guid: 11b9adeed3b9c446c9c650a43543784b
+    _assetName: RedSphere
   _blueCubeAbRef:
     _guid: 92cc6aa55703e42278534df4a6661b74
   _blueSphereAbRef:
@@ -318,9 +331,6 @@ MonoBehaviour:
   _redCubeRef:
     _guid: bf1c5548ab9b749f1bd2b4c3d3a24848
     _assetName: RedCube
-  _abName: green_mat
-  _testRef:
-    _guid: 0a513ca6e2e064741b33cd2c989eb677
 --- !u!4 &1153257788
 Transform:
   m_ObjectHideFlags: 0

@@ -18,21 +18,10 @@ namespace EasyAssetBundle
             return new VirtualAssetBundle(name);    
         }
 
-        public IAssetBundle Load(string name)
-        {
-            return new VirtualAssetBundle(name);
-        }
-
         public UniTask<IAssetBundle> LoadByGuidAsync(string guid)
         {
             string name = _manifest.guid2BundleDic[guid].name;
             return LoadAsync(name);
-        }
-
-        public IAssetBundle LoadByGuid(string guid)
-        {
-            string name = _manifest.guid2BundleDic[guid].name;
-            return Load(name);
         }
     }
 }
