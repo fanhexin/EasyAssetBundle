@@ -1,6 +1,9 @@
+using System;
+using System.Threading;
 using UniRx.Async;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace EasyAssetBundle
 {
@@ -17,15 +20,19 @@ namespace EasyAssetBundle
                 _assetBundle = assetBundle;
             }
 
-            public async UniTask<T> LoadAssetAsync<T>(string name) where T : Object
+            public async UniTask<T> LoadAssetAsync<T>(string name, IProgress<float> progress, CancellationToken token)
+                where T : Object
             {
-                Object asset = await _assetBundle.LoadAssetAsync<T>(name);
-                return asset as T;
+                AssetBundleRequest req = _assetBundle.LoadAssetAsync<T>(name);
+                await req.ConfigureAwait(progress, cancellation: token);
+                return req.asset as T;
             }
 
-            public async UniTask LoadSceneAsync(string name, LoadSceneMode loadSceneMode = LoadSceneMode.Additive)
+            public async UniTask LoadSceneAsync(string name, LoadSceneMode loadSceneMode, IProgress<float> progress,
+                CancellationToken token)
             {
-                await SceneManager.LoadSceneAsync(name, loadSceneMode);
+                var req = SceneManager.LoadSceneAsync(name, loadSceneMode);
+                await req.ConfigureAwait(progress, cancellation: token);
             }
 
             public void Unload(bool unloadAllLoadedObjects)

@@ -16,7 +16,7 @@ namespace EasyAssetBundle.Editor
         {
             get
             {
-                if (Settings.instance.manifest.guid2BundleDic.TryGetValue(_guid.stringValue, out Bundle bundle))
+                if (Settings.instance.runtimeSettings.guid2BundleDic.TryGetValue(_guid.stringValue, out Bundle bundle))
                 {
                     return bundle.name;
                 }
@@ -33,11 +33,11 @@ namespace EasyAssetBundle.Editor
 
         protected override void UpdateValue(Object obj, string abName, string varName)
         {
-            var bundle = Settings.instance.manifest.bundles.FirstOrDefault(x => x.name == abName);
+            var bundle = Settings.instance.runtimeSettings.bundles.FirstOrDefault(x => x.name == abName);
             if (bundle == null)
             {
                 var so = new SerializedObject(Settings.instance);
-                var bundles = so.FindProperty("_manifest").FindPropertyRelative("_bundles");
+                var bundles = Settings.GetBundlesSp(so);
                 _guid.stringValue = bundles.AddBundle(obj);
                 MainWindow.instance?.Reload();
             }

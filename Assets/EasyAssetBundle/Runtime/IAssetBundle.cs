@@ -1,13 +1,19 @@
+using System;
+using System.Threading;
 using UniRx.Async;
-using UnityEngine;
 using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace EasyAssetBundle
 {
     public interface IAssetBundle
     {
-        UniTask<T> LoadAssetAsync<T>(string name) where T : Object;
-        UniTask LoadSceneAsync(string name, LoadSceneMode loadSceneMode = LoadSceneMode.Additive);
+        UniTask<T> LoadAssetAsync<T>(string name, IProgress<float> progress = null, CancellationToken token = default)
+            where T : Object;
+
+        UniTask LoadSceneAsync(string name, LoadSceneMode loadSceneMode = LoadSceneMode.Additive,
+            IProgress<float> progress = null, CancellationToken token = default);
+
         void Unload(bool unloadAllLoadedObjects = true);
     }
 }

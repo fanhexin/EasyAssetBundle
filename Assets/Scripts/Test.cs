@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using EasyAssetBundle;
 
-public class Test : MonoBehaviour
+public class Test : MonoBehaviour, IProgress<float>
 {
     [SerializeField] private AssetReference[] _assetReferences;
     
@@ -43,15 +43,20 @@ public class Test : MonoBehaviour
         }
     }
 
-    private static async Task LoadAsync(AssetReference ar)
+    private async Task LoadAsync(AssetReference ar)
     {
         try
         {
-            Instantiate(await ar.LoadAsync<GameObject>());
+            Instantiate(await ar.LoadAsync<GameObject>(this));
         }
         catch (Exception e)
         {
             Debug.Log($"Exception: {e}");
         }
+    }
+
+    public void Report(float value)
+    {
+        Debug.Log($"load progress: {value}");
     }
 }

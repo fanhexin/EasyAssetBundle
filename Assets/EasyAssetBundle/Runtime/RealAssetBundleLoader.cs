@@ -4,6 +4,7 @@ using EasyAssetBundle.Common.Editor;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using EasyAssetBundle.Common;
 using UniRx.Async;
 using UnityEngine;
@@ -18,7 +19,7 @@ namespace EasyAssetBundle
         private const string VERSION_KEY = "easyassetbundle_version";
 
         readonly string _basePath;
-        private readonly Manifest _manifest;
+        private readonly RuntimeSettings _runtimeSettings;
         private readonly UniTask<AssetBundleManifest> _remoteManifest;
         private readonly UniTask<AssetBundleManifest> _localManifest;
 
@@ -27,37 +28,42 @@ namespace EasyAssetBundle
 
         readonly Dictionary<string, UnityWebRequestAsyncOperation> _abLoadingTasks =
             new Dictionary<string, UnityWebRequestAsyncOperation>();
+        
+        readonly ProgressDispatcher _progressDispatcher = new ProgressDispatcher();
 
         private readonly string _remoteUrl;
 
         private string _manifestName => Application.platform.ToGenericName();
 
-        public RealAssetBundleLoader(string basePath, Manifest manifest)
+        public RealAssetBundleLoader(string basePath, RuntimeSettings runtimeSettings)
         {
             _basePath = basePath;
-            _manifest = manifest;
+            _runtimeSettings = runtimeSettings;
 
 #if UNITY_EDITOR
             _remoteUrl = $"{Settings.instance.simulateUrl}/{_manifestName}";
 #else
-            _remoteUrl = string.IsNullOrEmpty(manifest.cdnUrl) ? string.Empty : $"{manifest.cdnUrl}/{_manifestName}";
+            _remoteUrl = string.IsNullOrEmpty(runtimeSettings.cdnUrl) ? string.Empty : $"{runtimeSettings.cdnUrl}/{_manifestName}";
 #endif
 
-            _localManifest = LoadManifestAsync(GetLocalPath(_manifestName), _manifest.version);
+            _localManifest = LoadManifestAsync(GetLocalPath(_manifestName), _runtimeSettings.version);
             _remoteManifest = LoadRemoteManifestAsync();
         }
 
         async UniTask<int> LoadVersionAsync()
         {
-            int version = PlayerPrefs.GetInt(VERSION_KEY, _manifest.version);
+            int version = PlayerPrefs.GetInt(VERSION_KEY, _runtimeSettings.version);
 
             if (string.IsNullOrEmpty(_remoteUrl))
             {
                 return version;
             }
 
-            using (var req = await UnityWebRequest.Get($"{_remoteUrl}/version").SendWebRequest())
+            using (var req = UnityWebRequest.Get($"{_remoteUrl}/version"))
             {
+                req.timeout = _runtimeSettings.timeout;
+                await req.SendWebRequest();
+                
                 if (req.isNetworkError || req.isHttpError ||
                     !int.TryParse(req.downloadHandler.text, out int remoteVersion))
                 {
@@ -79,8 +85,11 @@ namespace EasyAssetBundle
         async UniTask<AssetBundleManifest> LoadManifestAsync(string url, int version)
         {
             AssetBundle ab;
-            using (var req = await UnityWebRequestAssetBundle.GetAssetBundle(url, (uint) version, 0).SendWebRequest())
+            using (var req = UnityWebRequestAssetBundle.GetAssetBundle(url, (uint) version, 0))
             {
+                req.timeout = _runtimeSettings.timeout;
+                await req.SendWebRequest();
+                
                 if (req.isNetworkError || req.isHttpError)
                 {
                     return null;
@@ -103,7 +112,14 @@ namespace EasyAssetBundle
             }
 
             int version = await LoadVersionAsync();
-            return await LoadManifestAsync(GetRemoteAbUrl(_manifestName), version);
+            var remoteManifest = await LoadManifestAsync(GetRemoteAbUrl(_manifestName), version);
+            // 如果发生错误加载远程manifest失败，直接将其设置为localmanifest
+            if (remoteManifest == null)
+            {
+                remoteManifest = manifest;
+            }
+
+            return remoteManifest;
         }
 
         SharedReference<AssetBundle> CreateSharedRef(AssetBundle ab)
@@ -115,10 +131,11 @@ namespace EasyAssetBundle
             });
         }
 
-        async UniTask<AssetBundle> LoadAssetBundleAsync(string name)
+        async UniTask<AssetBundle> LoadAssetBundleAsync(string name, IProgress<float> progress, CancellationToken token)
         {
             if (_abRefs.TryGetValue(name, out var abRef))
             {
+                progress.Report(1);
                 return abRef.GetValue();
             }
 
@@ -128,7 +145,7 @@ namespace EasyAssetBundle
                 _abLoadingTasks[name] = req;
             }
 
-            UnityWebRequest unityWebRequest = await req;
+            UnityWebRequest unityWebRequest = await req.ConfigureAwait(progress, cancellation: token);
             if (unityWebRequest.isHttpError || unityWebRequest.isNetworkError)
             {
                 _abLoadingTasks.Remove(name);
@@ -136,7 +153,6 @@ namespace EasyAssetBundle
                 throw new Exception($"{nameof(unityWebRequest)} {unityWebRequest.error}");
             }
             
-            // todo 添加取消操作和report progress的能力
             _abLoadingTasks.Remove(name);
 
             if (_abRefs.TryGetValue(name, out abRef))
@@ -154,10 +170,11 @@ namespace EasyAssetBundle
         async UniTask<UnityWebRequestAsyncOperation> CreateLoadAssetBundleReq(string name)
         {
             string url = string.Empty;
-            Hash128 hash = (await _remoteManifest).GetAssetBundleHash(name);
+            Hash128 hash;
+            AssetBundleManifest remoteManifest = await _remoteManifest;
 
             // 找不到的是增量更新的AssetBundle，直接远程加载处理，因为只可能在远端
-            if (_manifest.name2BundleDic.TryGetValue(name, out var bundle))
+            if (_runtimeSettings.name2BundleDic.TryGetValue(name, out var bundle))
             {
                 switch (bundle.type)
                 {
@@ -175,11 +192,11 @@ namespace EasyAssetBundle
                         }
 
                         url = GetRemoteAbUrl(name);
-                        hash = (await _remoteManifest).GetAssetBundleHash(name);
+                        hash = remoteManifest.GetAssetBundleHash(name);
                         break;
                     case BundleType.Remote:
                         url = GetRemoteAbUrl(name);
-                        hash = (await _remoteManifest).GetAssetBundleHash(name);
+                        hash = remoteManifest.GetAssetBundleHash(name);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -188,24 +205,30 @@ namespace EasyAssetBundle
             else
             {
                 url = GetRemoteAbUrl(name);
-                hash = (await _remoteManifest).GetAssetBundleHash(name);
+                hash = remoteManifest.GetAssetBundleHash(name);
             }
 
-            return UnityWebRequestAssetBundle.GetAssetBundle(url, hash).SendWebRequest();
+            var req = UnityWebRequestAssetBundle.GetAssetBundle(url, hash);
+            req.timeout = _runtimeSettings.timeout;
+            return req.SendWebRequest();
         }
 
-        public async UniTask<IAssetBundle> LoadAsync(string name)
+        public async UniTask<IAssetBundle> LoadAsync(string name, IProgress<float> progress, CancellationToken token)
         {
             string[] dependencies = (await _remoteManifest).GetAllDependencies(name);
-            await UniTask.WhenAll(dependencies.Select(LoadAssetBundleAsync));
-            var ab = await LoadAssetBundleAsync(name);
-            return new RealAssetBundle(this, ab);
+            using (var handler = _progressDispatcher.Create(progress))
+            {
+                progress = handler.CreateProgress();
+                await UniTask.WhenAll(dependencies.Select(x => LoadAssetBundleAsync(x, handler.CreateProgress(), token)));
+                var ab = await LoadAssetBundleAsync(name, progress, token);
+                return new RealAssetBundle(this, ab);
+            }
         }
 
-        public UniTask<IAssetBundle> LoadByGuidAsync(string guid)
+        public UniTask<IAssetBundle> LoadByGuidAsync(string guid, IProgress<float> progress, CancellationToken token)
         {
-            string name = _manifest.guid2BundleDic[guid].name;
-            return LoadAsync(name);
+            string name = _runtimeSettings.guid2BundleDic[guid].name;
+            return LoadAsync(name, progress, token);
         }
 
         async void Unload(AssetBundle assetBundle, bool unloadAllLoadedObjects)

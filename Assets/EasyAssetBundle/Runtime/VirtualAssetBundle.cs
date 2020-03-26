@@ -1,9 +1,11 @@
 #if UNITY_EDITOR
 using System;
 using System.Linq;
+using System.Threading;
 using UniRx.Async;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -30,12 +32,15 @@ namespace EasyAssetBundle
             return asset;
         }
 
-        public async UniTask<T> LoadAssetAsync<T>(string name) where T : Object
+        public async UniTask<T> LoadAssetAsync<T>(string name, IProgress<float> progress, CancellationToken token)
+            where T : Object
         {
+            progress.Report(1);
             return LoadAsset<T>(name);
         }
 
-        public async UniTask LoadSceneAsync(string name, LoadSceneMode loadSceneMode = LoadSceneMode.Additive)
+        public async UniTask LoadSceneAsync(string name, LoadSceneMode loadSceneMode, IProgress<float> progress,
+            CancellationToken token)
         {
             string[] guids = AssetDatabase.FindAssets($"t: Scene {name}");
             if (guids.Length == 0)
@@ -44,7 +49,8 @@ namespace EasyAssetBundle
             }
 
             string scenePath = AssetDatabase.GUIDToAssetPath(guids.First());
-            await EditorSceneManager.LoadSceneAsyncInPlayMode(scenePath, new LoadSceneParameters(loadSceneMode));
+            AsyncOperation operation = EditorSceneManager.LoadSceneAsyncInPlayMode(scenePath, new LoadSceneParameters(loadSceneMode));
+            await operation.ConfigureAwait(progress, cancellation: token);
         }
 
         public void Unload(bool unloadAllLoadedObjects)
