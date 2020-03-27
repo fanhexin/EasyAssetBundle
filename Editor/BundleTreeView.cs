@@ -266,13 +266,14 @@ namespace EasyAssetBundle.Editor
         protected override void ContextClickedItem(int id)
         {
             var menu = new GenericMenu();
-            menu.AddItem(new GUIContent("Remove Extension"), false, () =>
+            menu.AddItem(new GUIContent("Add Extension"), false, () =>
             {
                 foreach (int selectId in GetSelection())
                 {
                     string abName = _bundlesSp.GetArrayElementAtIndex(selectId - 1)
                         .FindPropertyRelative("_name").stringValue;
-                    Rename(selectId, Path.GetFileNameWithoutExtension(abName));
+                    string path = AssetDatabase.GetAssetPathsFromAssetBundle(abName).First();
+                    Rename(selectId, $"{abName}_{Path.GetExtension(path).Replace(".", String.Empty)}");
                     Save();
                     Reload();
                 }

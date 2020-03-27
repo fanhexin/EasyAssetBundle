@@ -32,7 +32,7 @@ namespace EasyAssetBundle.Editor
             string abName = AssetDatabase.GetImplicitAssetBundleName(assetPath);
             if (string.IsNullOrEmpty(abName))
             {
-                abName = Path.GetFileName(assetPath).ToLower();
+                abName = Path.GetFileNameWithoutExtension(assetPath).ToLower();
             }
             else
             {
