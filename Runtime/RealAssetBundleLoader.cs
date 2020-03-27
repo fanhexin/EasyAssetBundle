@@ -26,10 +26,8 @@ namespace EasyAssetBundle
         readonly Dictionary<string, SharedReference<AssetBundle>> _abRefs =
             new Dictionary<string, SharedReference<AssetBundle>>();
 
-        readonly Dictionary<string, UnityWebRequestAsyncOperation> _abLoadingTasks =
-            new Dictionary<string, UnityWebRequestAsyncOperation>();
-        
-        readonly ProgressDispatcher _progressDispatcher = new ProgressDispatcher();
+        readonly Dictionary<string, UniTask<UnityWebRequest>> _abLoadingTasks =
+            new Dictionary<string, UniTask<UnityWebRequest>>();
 
         private readonly string _remoteUrl;
 
@@ -139,13 +137,15 @@ namespace EasyAssetBundle
                 return abRef.GetValue();
             }
 
-            if (!_abLoadingTasks.TryGetValue(name, out var req))
+            if (!_abLoadingTasks.TryGetValue(name, out UniTask<UnityWebRequest> req))
             {
-                req = await CreateLoadAssetBundleReq(name);
+                var webRequest = await CreateLoadAssetBundleReq(name);
+                //todo 原来用的 configureAwait在首次调用时不会上报Progress，也许升级unitytask版本试试
+                req = webRequest.SendWebRequest().WaitUntilDone(progress, token);
                 _abLoadingTasks[name] = req;
             }
 
-            UnityWebRequest unityWebRequest = await req.ConfigureAwait(progress, cancellation: token);
+            UnityWebRequest unityWebRequest = await req;
             if (unityWebRequest.isHttpError || unityWebRequest.isNetworkError)
             {
                 _abLoadingTasks.Remove(name);
@@ -157,6 +157,7 @@ namespace EasyAssetBundle
 
             if (_abRefs.TryGetValue(name, out abRef))
             {
+                progress.Report(1);
                 return abRef.GetValue();
             }
 
@@ -167,7 +168,7 @@ namespace EasyAssetBundle
         }
 
         // todo 重构缩减重复代码
-        async UniTask<UnityWebRequestAsyncOperation> CreateLoadAssetBundleReq(string name)
+        async UniTask<UnityWebRequest> CreateLoadAssetBundleReq(string name)
         {
             string url = string.Empty;
             Hash128 hash;
@@ -210,16 +211,19 @@ namespace EasyAssetBundle
 
             var req = UnityWebRequestAssetBundle.GetAssetBundle(url, hash);
             req.timeout = _runtimeSettings.timeout;
-            return req.SendWebRequest();
+            return req;
         }
 
         public async UniTask<IAssetBundle> LoadAsync(string name, IProgress<float> progress, CancellationToken token)
         {
             string[] dependencies = (await _remoteManifest).GetAllDependencies(name);
-            using (var handler = _progressDispatcher.Create(progress))
+            using (var handler = ProgressDispatcher.instance.Create(progress))
             {
                 progress = handler.CreateProgress();
-                await UniTask.WhenAll(dependencies.Select(x => LoadAssetBundleAsync(x, handler.CreateProgress(), token)));
+                if (dependencies.Length != 0)
+                {
+                    await UniTask.WhenAll(dependencies.Select(x => LoadAssetBundleAsync(x, handler.CreateProgress(), token)));
+                }
                 var ab = await LoadAssetBundleAsync(name, progress, token);
                 return new RealAssetBundle(this, ab);
             }

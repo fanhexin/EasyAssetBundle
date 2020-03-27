@@ -9,9 +9,6 @@ namespace EasyAssetBundle
     [Serializable]
     public class AssetReference
     {
-        private static Lazy<ProgressDispatcher> _progressDispatcher = 
-            new Lazy<ProgressDispatcher>(() => new ProgressDispatcher());
-        
         [SerializeField]
         string _guid;
 
@@ -25,12 +22,12 @@ namespace EasyAssetBundle
         public async UniTask<T> LoadAsync<T>(IProgress<float> progress = null, CancellationToken token = default) 
             where T : Object
         {
-            ProgressDispatcher.Handler? handler = null;
+            ProgressDispatcher.Handler handler = null;
             if (_assetBundle == null)
             {
-                handler = _progressDispatcher.Value.Create(progress);
-                progress = handler.Value.CreateProgress();
-                _assetBundle = await AssetBundleLoader.instance.LoadByGuidAsync(_guid, handler.Value.CreateProgress(), token);
+                handler = ProgressDispatcher.instance.Create(progress);
+                progress = handler.CreateProgress();
+                _assetBundle = await AssetBundleLoader.instance.LoadByGuidAsync(_guid, handler.CreateProgress(), token);
             }
 
             var ret = await _assetBundle.LoadAssetAsync<T>(_assetName, progress, token);

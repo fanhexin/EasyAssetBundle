@@ -6,92 +6,101 @@ namespace EasyAssetBundle
 {
     public class ProgressDispatcher
     {
-        private IProgress<float> _progress;
-        readonly List<InnerProgress> _innerProgresses = new List<InnerProgress>();
-        private int _topIndex = -1;
+        private static ProgressDispatcher _instance;
+        public static ProgressDispatcher instance => _instance ?? (_instance = new ProgressDispatcher());
+
+        readonly Queue<Handler> _handlers = new Queue<Handler>();
+
+        private ProgressDispatcher() { }
 
         public Handler Create(IProgress<float> progress)
         {
-            return new Handler(this, progress);    
+            var handler = _handlers.Count > 0 ? _handlers.Dequeue() 
+                : new Handler(this);
+            handler.progress = progress;
+            return handler;
         }
 
-        InnerProgress CreateProgress()
+        void Recycle(Handler handler)
         {
-            if (_progress == null)
-            {
-                return null;
-            }
-            
-            if (_topIndex < 0)
-            {
-                var p = new InnerProgress(this);
-                _innerProgresses.Add(p);
-                return p;
-            }
-            
-            return _innerProgresses[_topIndex--];
+            _handlers.Enqueue(handler);    
         }
 
-        void Report()
-        {
-            float sum = 0;
-            int num = 0;
-            for (int i = _topIndex + 1; i < _innerProgresses.Count; i++)
-            {
-                sum += _innerProgresses[i].value;
-                ++num;
-            }
-            
-            _progress.Report(sum / num);        
-        }
-
-        void Reset()
-        {
-            if (_progress == null)
-            {
-                return;
-            }
-            
-            _innerProgresses.ForEach(x => x.Reset());
-            _topIndex = _innerProgresses.Count - 1;
-            _progress = null;
-        }
-
-        public struct Handler : IDisposable 
+        public class Handler : IDisposable 
         {
             private readonly ProgressDispatcher _dispatcher;
+            readonly List<InnerProgress> _innerProgresses = new List<InnerProgress>();
+            public IProgress<float> progress { private get; set; }
+            private int _topIndex = -1;
 
-            public Handler(ProgressDispatcher dispatcher, IProgress<float> progress)
+            public Handler(ProgressDispatcher dispatcher)
             {
                 _dispatcher = dispatcher;
-                _dispatcher._progress = progress;
             }
             
             public IProgress<float> CreateProgress()
             {
-                return _dispatcher.CreateProgress();
+                if (progress == null)
+                {
+                    return null;
+                }
+
+                InnerProgress p;
+                if (_topIndex < 0)
+                {
+                    p = new InnerProgress(this);
+                    _innerProgresses.Add(p);
+                }
+                else
+                {
+                    p = _innerProgresses[_topIndex--];
+                    p.Reset();
+                }
+                
+                return p;
             }
             
             public void Dispose()
             {
-                _dispatcher.Reset();
+                _topIndex = _innerProgresses.Count - 1;
+                progress = null;
+                _dispatcher.Recycle(this);
+            }
+
+            public void Report()
+            {
+                if (progress == null)
+                {
+                    return;
+                }
+                
+                float sum = 0;
+                int num = 0;
+                for (int i = _topIndex + 1; i < _innerProgresses.Count; i++)
+                {
+                    sum += _innerProgresses[i].value;
+                    ++num;
+                }
+                
+                progress.Report(sum / num);        
             }
         }
 
-        class InnerProgress : IProgress<float>
+        class InnerProgress : Progress<float>
         {
-            private readonly ProgressDispatcher _dispatcher;
+            private readonly Handler _handler;
             public float value { get; private set; }
 
-            public InnerProgress(ProgressDispatcher dispatcher)
+            public InnerProgress(Handler handler)
             {
-                _dispatcher = dispatcher;
+                _handler = handler;
             }
-            
-            public void Report(float value)
+
+            protected override void OnReport(float value)
             {
+                base.OnReport(value);
                 this.value = Mathf.Max(this.value, value);
-                _dispatcher.Report();
+                _handler.Report();
             }
 
             public void Reset()
