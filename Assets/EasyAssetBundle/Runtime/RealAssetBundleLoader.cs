@@ -4,6 +4,7 @@ using EasyAssetBundle.Common.Editor;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using EasyAssetBundle.Common;
 using UniRx.Async;
@@ -13,7 +14,7 @@ using UnityEngine.Networking;
 namespace EasyAssetBundle
 {
     // todo 添加获取更新文件大小的支持(做成可选配置)
-    // todo 添加检测和更新指定单个或多个bundle的功能
+    // todo *添加检测和更新指定单个或多个bundle的功能
     public partial class RealAssetBundleLoader : IAssetBundleLoader
     {
         private const string VERSION_KEY = "easyassetbundle_version";
@@ -25,9 +26,6 @@ namespace EasyAssetBundle
 
         readonly Dictionary<string, SharedReference<AssetBundle>> _abRefs =
             new Dictionary<string, SharedReference<AssetBundle>>();
-
-        readonly Dictionary<string, UniTask<UnityWebRequest>> _abLoadingTasks =
-            new Dictionary<string, UniTask<UnityWebRequest>>();
 
         private readonly string _remoteUrl;
 
@@ -137,34 +135,34 @@ namespace EasyAssetBundle
                 return abRef.GetValue();
             }
 
-            if (!_abLoadingTasks.TryGetValue(name, out UniTask<UnityWebRequest> req))
+            var webRequest = await CreateLoadAssetBundleReq(name);
+            //todo 原来用的 configureAwait在首次调用时不会上报Progress，也许升级unitytask版本试试
+            using (var request = await webRequest.SendWebRequest().WaitUntilDone(progress, token))
             {
-                var webRequest = await CreateLoadAssetBundleReq(name);
-                //todo 原来用的 configureAwait在首次调用时不会上报Progress，也许升级unitytask版本试试
-                req = webRequest.SendWebRequest().WaitUntilDone(progress, token);
-                _abLoadingTasks[name] = req;
-            }
+                AssetBundle ab;
+                
+                if (request.isHttpError ||
+                    request.isNetworkError ||
+                    (ab = DownloadHandlerAssetBundle.GetContent(request)) == null)
+                {
+                    // 发生错误加载缓存的最新版本，没有再抛异常
+                    var hash = GetNewestCachedVersion(name);
+                    if (hash == null)
+                    {
+                        throw new Exception($"{nameof(request)} {request.error}");
+                    }
 
-            UnityWebRequest unityWebRequest = await req;
-            if (unityWebRequest.isHttpError || unityWebRequest.isNetworkError)
-            {
-                _abLoadingTasks.Remove(name);
-                unityWebRequest.Dispose();
-                throw new Exception($"{nameof(unityWebRequest)} {unityWebRequest.error}");
-            }
-            
-            _abLoadingTasks.Remove(name);
-
-            if (_abRefs.TryGetValue(name, out abRef))
-            {
-                progress.Report(1);
+                    var newReq = await UnityWebRequestAssetBundle
+                        .GetAssetBundle(request.url, hash.Value)
+                        .SendWebRequest()
+                        .WaitUntilDone(progress, token);
+                    ab = DownloadHandlerAssetBundle.GetContent(newReq);
+                }
+                
+                abRef = CreateSharedRef(ab);
+                _abRefs[name] = abRef;
                 return abRef.GetValue();
             }
-
-            abRef = CreateSharedRef(DownloadHandlerAssetBundle.GetContent(unityWebRequest));
-            unityWebRequest.Dispose();
-            _abRefs[name] = abRef;
-            return abRef.GetValue();
         }
 
         // todo 重构缩减重复代码
@@ -258,6 +256,25 @@ namespace EasyAssetBundle
             path = $"file://{path}";
 #endif
             return path;
+        }
+
+        Hash128? GetNewestCachedVersion(string abName)
+        {
+            string path = Path.Combine(Caching.defaultCache.path, abName);
+            if (!Directory.Exists(path))
+            {
+                return null;
+            }
+
+            var directories = Directory.GetDirectories(path);
+            if (directories.Length == 0)
+            {
+                return null;
+            }
+
+            return directories.OrderByDescending(Directory.GetCreationTime)
+                .Select(x => Hash128.Parse(Path.GetFileNameWithoutExtension(x)))
+                .First();
         }
     }
 }
