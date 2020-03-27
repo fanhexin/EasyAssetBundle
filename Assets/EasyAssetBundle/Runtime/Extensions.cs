@@ -1,7 +1,11 @@
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
+using System;
+using System.Threading;
+using UniRx.Async;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace EasyAssetBundle
 {
@@ -20,6 +24,26 @@ namespace EasyAssetBundle
                     return platform.ToString();
             }
 #endif
+        }
+
+        public static async UniTask<UnityWebRequest> WaitUntilDone(this UnityWebRequestAsyncOperation operation,
+            IProgress<float> progress = null,
+            CancellationToken token = default)
+        {
+            token.Register(operation.webRequest.Abort);
+            while (!operation.isDone)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    return operation.webRequest;
+                }
+                
+                progress?.Report(operation.progress);
+                await UniTask.DelayFrame(1, cancellationToken: token);
+            }
+
+            progress?.Report(1);
+            return operation.webRequest;
         }
     }
 }

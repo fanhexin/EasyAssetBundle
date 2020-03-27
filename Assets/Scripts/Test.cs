@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Threading.Tasks;
 using UnityEngine;
 using EasyAssetBundle;
+using UniRx.Async;
 
 public class Test : MonoBehaviour, IProgress<float>
 {
@@ -43,7 +43,7 @@ public class Test : MonoBehaviour, IProgress<float>
         }
     }
 
-    private async Task LoadAsync(AssetReference ar)
+    private async UniTask LoadAsync(AssetReference ar)
     {
         try
         {
