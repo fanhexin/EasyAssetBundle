@@ -285,6 +285,7 @@ namespace EasyAssetBundle.Editor
                 EditorGUIUtility.PingObject(LoadAsset(abName));
             });
             
+            // todo 删除时需要提醒当前bundle是否被AssetBundleReference或者AssetReference引用
             menu.AddItem(new GUIContent("Delete"), false, () =>
             {
                 // Undo.RecordObject(_bundlesSp.serializedObject.targetObject, "delete");
