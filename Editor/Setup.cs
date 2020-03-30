@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using EasyAssetBundle.Common;
 using UnityEditor;
@@ -32,10 +33,15 @@ namespace EasyAssetBundle.Editor
             AssetDatabase.CreateAsset(config, path);
 
             AssetBundleBuilder.CopyToStreamingAssets();
-            BuildPlayerWindow.DefaultBuildMethods.BuildPlayer(options);
-            AssetBundleBuilder.DeleteStreamingAssetsBundlePath();
-
-            AssetDatabase.DeleteAsset(path);
+            try
+            {
+                BuildPlayerWindow.DefaultBuildMethods.BuildPlayer(options);
+            }
+            finally
+            {
+                AssetBundleBuilder.DeleteStreamingAssetsBundlePath();
+                AssetDatabase.DeleteAsset(path);
+            }
         }
     }
 }
