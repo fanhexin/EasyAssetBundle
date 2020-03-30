@@ -2,10 +2,12 @@
 using UnityEngine;
 using EasyAssetBundle;
 using UniRx.Async;
+using UnityEngine.SceneManagement;
 
 public class Test : MonoBehaviour, IProgress<float>
 {
     [SerializeField] private AssetReference[] _assetReferences;
+    [SerializeField] private SceneReference _testScene;
     
     private Matrix4x4 _guiScaleMatrix;
 
@@ -20,6 +22,7 @@ public class Test : MonoBehaviour, IProgress<float>
         {
             ar.Unload();    
         }
+        _testScene.Unload();
     }
 
     void OnGUI()
@@ -36,6 +39,11 @@ public class Test : MonoBehaviour, IProgress<float>
             }
         }
 
+        if (GUILayout.Button("load test scene", GUILayout.ExpandWidth(false)))
+        {
+            LoadSceneAsync(_testScene);
+        }
+
         GUILayout.Label("Real模式下Unload(true)会发现材质丢失，prefab和材质都被从内存中卸载。");
         if (GUILayout.Button("Unload!", GUILayout.ExpandWidth(false)))
         {
@@ -43,7 +51,7 @@ public class Test : MonoBehaviour, IProgress<float>
         }
     }
 
-    private async UniTask LoadAsync(AssetReference ar)
+    private async void LoadAsync(AssetReference ar)
     {
         try
         {
@@ -52,6 +60,19 @@ public class Test : MonoBehaviour, IProgress<float>
         catch (Exception e)
         {
             Debug.Log($"Exception: {e}");
+        }
+    }
+
+    private async void LoadSceneAsync(SceneReference sceneReference)
+    {
+        try
+        {
+            Scene newScene = await sceneReference.LoadAsync(progress: this);
+            Debug.Log($"load new scene: {newScene.name}!");
+        }
+        catch (Exception e)
+        {
+            Debug.Log($"{nameof(LoadSceneAsync)} exception: {e}");
         }
     }
 

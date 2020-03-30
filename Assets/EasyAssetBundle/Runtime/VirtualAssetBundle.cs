@@ -39,7 +39,7 @@ namespace EasyAssetBundle
             return LoadAsset<T>(name);
         }
 
-        public async UniTask LoadSceneAsync(string name, LoadSceneMode loadSceneMode, IProgress<float> progress,
+        public async UniTask<Scene> LoadSceneAsync(string name, LoadSceneMode loadSceneMode, IProgress<float> progress,
             CancellationToken token)
         {
             string[] guids = AssetDatabase.FindAssets($"t: Scene {name}");
@@ -51,6 +51,7 @@ namespace EasyAssetBundle
             string scenePath = AssetDatabase.GUIDToAssetPath(guids.First());
             AsyncOperation operation = EditorSceneManager.LoadSceneAsyncInPlayMode(scenePath, new LoadSceneParameters(loadSceneMode));
             await operation.ConfigureAwait(progress, cancellation: token);
+            return SceneManager.GetSceneByName(name);
         }
 
         public void Unload(bool unloadAllLoadedObjects)

@@ -9,26 +9,33 @@ namespace EasyAssetBundle
     [Serializable]
     public class SceneReference
     {
-        [SerializeField] string _abName;
+        [SerializeField] string _guid;
 
         [SerializeField] string _assetName;
 
         IAssetBundle _assetBundle;
 
-        public async UniTask LoadAsync(LoadSceneMode loadSceneMode = LoadSceneMode.Additive,
+        public async UniTask<Scene> LoadAsync(LoadSceneMode loadSceneMode = LoadSceneMode.Additive,
             IProgress<float> progress = null, CancellationToken token = default)
         {
+            // todo 次数处理Progress的代码跟AssetReference中的有些重复，考虑重构
+            ProgressDispatcher.Handler handler = null;
             if (_assetBundle == null)
             {
-                _assetBundle = await AssetBundleLoader.instance.LoadAsync(_abName, progress, token);
+                handler = ProgressDispatcher.instance.Create(progress);
+                progress = handler.CreateProgress();
+                _assetBundle = await AssetBundleLoader.instance.LoadByGuidAsync(_guid, handler.CreateProgress(), token);
             }
 
-            await _assetBundle.LoadSceneAsync(_assetName, loadSceneMode, progress, token);
+            Scene scene = await _assetBundle.LoadSceneAsync(_assetName, loadSceneMode, progress, token);
+            handler?.Dispose();
+            return scene;
         }
 
         public void Unload(bool unloadAllLoadedObjects = true)
         {
             _assetBundle?.Unload(unloadAllLoadedObjects);
+            _assetBundle = null;
         }
     }
 }

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: EasyAssetBundle.Common.Editor.Settings
   m_EditorClassIdentifier: 
   _httpServiceSettings:
-    _enabled: 0
+    _enabled: 1
     _port: 8887
   _runtimeSettings:
     _version: 6
@@ -49,6 +49,9 @@ MonoBehaviour:
       _type: 2
     - _guid: a7b42ee17e5a241ad868d66b4a2fa41a
       _name: red_mat
+      _type: 2
+    - _guid: 9a10b2ffffa794d75a70118c20b9c056
+      _name: test
       _type: 2
   _buildOptions: 256
   _mode: 1

@@ -315,22 +315,9 @@ MonoBehaviour:
     _assetName: RedCube
   - _guid: 11b9adeed3b9c446c9c650a43543784b
     _assetName: RedSphere
-  _blueCubeAbRef:
-    _guid: 92cc6aa55703e42278534df4a6661b74
-  _blueSphereAbRef:
-    _guid: 404152dadc43e40599284b865b02a414
-  _greenCubeRef:
-    _guid: fb4ff6172324f4160b952bef0acead15
-    _assetName: GreenCube
-  _greenSphereRef:
-    _guid: e5e3e632348344c61ba10fe16dfd6ba2
-    _assetName: GreenSphere
-  _redSphereRef:
-    _guid: 11b9adeed3b9c446c9c650a43543784b
-    _assetName: RedSphere
-  _redCubeRef:
-    _guid: bf1c5548ab9b749f1bd2b4c3d3a24848
-    _assetName: RedCube
+  _testScene:
+    _guid: 9a10b2ffffa794d75a70118c20b9c056
+    _assetName: Test
 --- !u!4 &1153257788
 Transform:
   m_ObjectHideFlags: 0
