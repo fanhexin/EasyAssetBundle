@@ -124,8 +124,10 @@ namespace EasyAssetBundle.Editor
             });
 
             EditorGUILayout.EndHorizontal();
+
+            float offset = EditorStyles.toolbar.fixedHeight;
+            _bundleTreeView.OnGUI(new Rect(0, offset, position.width, position.height - offset));
             
-            _bundleTreeView.OnGUI(new Rect(0, EditorStyles.toolbar.fixedHeight, position.width, position.height));
             if (EditorGUI.EndChangeCheck())
             {
                 _settingsSo.ApplyModifiedProperties();
