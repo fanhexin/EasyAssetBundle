@@ -1,7 +1,6 @@
 ﻿using System;
 using UnityEngine;
 using EasyAssetBundle;
-using UniRx.Async;
 using UnityEngine.SceneManagement;
 
 public class Test : MonoBehaviour, IProgress<float>

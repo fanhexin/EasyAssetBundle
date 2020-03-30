@@ -39,7 +39,7 @@ namespace EasyAssetBundle.Editor
             
             _bundlesSp = bundlesSp;
             _itemFieldGetters = new Func<TreeViewItem, IComparable>[columnNum];
-            _itemFieldGetters[0] = item => item.icon.name;
+            _itemFieldGetters[0] = item => item.displayName;
             _itemFieldGetters[1] = item => _bundlesSp.GetArrayElementAtIndex(item.id - 1)
                 .FindPropertyRelative("_type").enumValueIndex;
             Reload();
@@ -207,15 +207,16 @@ namespace EasyAssetBundle.Editor
             {
                 var item = _bundlesSp.GetArrayElementAtIndex(i);
                 string name = item.FindPropertyRelative("_name").stringValue;
-                Object obj = LoadAsset(name);
-                var icon = EditorGUIUtility.ObjectContent(obj, obj.GetType());
+                // todo 这里加载icon的过程要加载资源，太影响性能，争取找到更快的方法
+                // Object obj = LoadAsset(name);
+                // var icon = EditorGUIUtility.ObjectContent(obj, obj.GetType());
                 
                 rows.Add(new TreeViewItem
                 {
                     id = i + 1,
                     depth = 0,
-                    displayName = name,
-                    icon = (Texture2D) icon.image
+                    displayName = name
+                    // icon = (Texture2D) icon.image
                 });
             }
             return rows;
@@ -301,6 +302,18 @@ namespace EasyAssetBundle.Editor
                 }
                 Reload();
             });
+            
+            menu.AddItem(new GUIContent("Show Dependencies"), false, () =>
+            {
+                int selectId = GetSelection().First();
+                string abName = _bundlesSp.GetArrayElementAtIndex(selectId - 1)
+                    .FindPropertyRelative("_name").stringValue;
+                foreach (string name in AssetDatabase.GetAssetBundleDependencies(abName, true))
+                {
+                    string path = AssetDatabase.GetAssetPathsFromAssetBundle(name).First();
+                    EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<Object>(path));
+                }
+            });
             menu.ShowAsContext();
         }
 
@@ -332,7 +345,12 @@ namespace EasyAssetBundle.Editor
         {
             foreach (string assetBundleName in assetBundleNames)
             {
-                _bundlesSp.AddBundle(LoadAsset(assetBundleName));
+                string path = AssetDatabase.GetAssetPathsFromAssetBundle(assetBundleName).FirstOrDefault();
+                if (string.IsNullOrEmpty(path))
+                {
+                    continue;
+                }
+                _bundlesSp.AddBundle(path);
             }
 
             Reload();

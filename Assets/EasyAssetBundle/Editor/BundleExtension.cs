@@ -25,10 +25,14 @@ namespace EasyAssetBundle.Editor
 
             return false;
         }
-        
+
         public static string AddBundle(this SerializedProperty bundles, Object asset)
         {
-            string assetPath = AssetDatabase.GetAssetPath(asset);
+            return bundles.AddBundle(AssetDatabase.GetAssetPath(asset));
+        }
+        
+        public static string AddBundle(this SerializedProperty bundles, string assetPath)
+        {
             string abName = AssetDatabase.GetImplicitAssetBundleName(assetPath);
             if (string.IsNullOrEmpty(abName))
             {
@@ -42,9 +46,10 @@ namespace EasyAssetBundle.Editor
                 }
             }
 
+            string guid = AssetDatabase.AssetPathToGUID(assetPath);
             if (bundles.Any(abName))
             {
-                abName += $"_conflict_{asset.GetHashCode()}";
+                abName += $"_conflict_{guid}";
             }
             
             var importer = AssetImporter.GetAtPath(assetPath);
@@ -52,8 +57,7 @@ namespace EasyAssetBundle.Editor
             importer.SaveAndReimport();
 
             var newItem = bundles.GetArrayElementAtIndex(bundles.arraySize++);
-            string guid = asset.Guid();
-            newItem.FindPropertyRelative("_guid").stringValue = asset.Guid();
+            newItem.FindPropertyRelative("_guid").stringValue = guid;
             newItem.FindPropertyRelative("_name").stringValue = abName;
             newItem.FindPropertyRelative("_type").enumValueIndex = 0;
             bundles.serializedObject.ApplyModifiedProperties();
