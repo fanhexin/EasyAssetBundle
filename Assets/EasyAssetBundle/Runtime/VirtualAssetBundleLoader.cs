@@ -22,7 +22,7 @@ namespace EasyAssetBundle
             return new VirtualAssetBundle(name);    
         }
 
-        public async UniTask<(IAssetBundle ab, T asset)> LoadAsync<T>(string abName, string assetName,
+        public async UniTask<(IAssetBundle ab, T asset)> LoadAssetAsync<T>(string abName, string assetName,
             IProgress<float> progress = null, CancellationToken token = default) where T : Object
         {
             var ab = new VirtualAssetBundle(abName);
@@ -36,11 +36,11 @@ namespace EasyAssetBundle
             return LoadAsync(name, progress, token);
         }
 
-        public UniTask<(IAssetBundle ab, T asset)> LoadByGuidAsync<T>(string guid, string assetName,
+        public UniTask<(IAssetBundle ab, T asset)> LoadAssetByGuidAsync<T>(string guid, string assetName,
             IProgress<float> progress = null, CancellationToken token = default) where T : Object
         {
             string name = _runtimeSettings.guid2BundleDic[guid].name;
-            return LoadAsync<T>(name, assetName, progress, token);
+            return LoadAssetAsync<T>(name, assetName, progress, token);
         }
     }
 }
