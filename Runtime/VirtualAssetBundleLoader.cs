@@ -3,6 +3,7 @@ using System;
 using System.Threading;
 using EasyAssetBundle.Common;
 using UniRx.Async;
+using Object = UnityEngine.Object;
 
 namespace EasyAssetBundle
 {
@@ -21,10 +22,25 @@ namespace EasyAssetBundle
             return new VirtualAssetBundle(name);    
         }
 
+        public async UniTask<(IAssetBundle ab, T asset)> LoadAsync<T>(string abName, string assetName,
+            IProgress<float> progress = null, CancellationToken token = default) where T : Object
+        {
+            var ab = new VirtualAssetBundle(abName);
+            var asset = await ab.LoadAssetAsync<T>(assetName, progress, token);
+            return (ab, asset);
+        }
+
         public UniTask<IAssetBundle> LoadByGuidAsync(string guid, IProgress<float> progress, CancellationToken token)
         {
             string name = _runtimeSettings.guid2BundleDic[guid].name;
             return LoadAsync(name, progress, token);
+        }
+
+        public UniTask<(IAssetBundle ab, T asset)> LoadByGuidAsync<T>(string guid, string assetName,
+            IProgress<float> progress = null, CancellationToken token = default) where T : Object
+        {
+            string name = _runtimeSettings.guid2BundleDic[guid].name;
+            return LoadAsync<T>(name, assetName, progress, token);
         }
     }
 }

@@ -10,6 +10,7 @@ using EasyAssetBundle.Common;
 using UniRx.Async;
 using UnityEngine;
 using UnityEngine.Networking;
+using Object = UnityEngine.Object;
 
 namespace EasyAssetBundle
 {
@@ -227,10 +228,29 @@ namespace EasyAssetBundle
             }
         }
 
+        public async UniTask<(IAssetBundle ab, T asset)> LoadAsync<T>(string abName, string assetName,
+            IProgress<float> progress = null, CancellationToken token = default) where T : Object
+        {
+            using (var handler = ProgressDispatcher.instance.Create(progress))
+            {
+                IProgress<float> loadAssetProgress = handler.CreateProgress();
+                var ab = await LoadAsync(abName, handler.CreateProgress(), token);
+                var asset = await ab.LoadAssetAsync<T>(assetName, loadAssetProgress, token);
+                return (ab, asset);
+            }
+        }
+
         public UniTask<IAssetBundle> LoadByGuidAsync(string guid, IProgress<float> progress, CancellationToken token)
         {
             string name = _runtimeSettings.guid2BundleDic[guid].name;
             return LoadAsync(name, progress, token);
+        }
+
+        public UniTask<(IAssetBundle ab, T asset)> LoadByGuidAsync<T>(string guid, string assetName,
+            IProgress<float> progress = null, CancellationToken token = default) where T : Object
+        {
+            string name = _runtimeSettings.guid2BundleDic[guid].name;
+            return LoadAsync<T>(name, assetName, progress, token);
         }
 
         async void Unload(AssetBundle assetBundle, bool unloadAllLoadedObjects)
