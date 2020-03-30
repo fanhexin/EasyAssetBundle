@@ -35,7 +35,7 @@ namespace EasyAssetBundle
         public async UniTask<T> LoadAssetAsync<T>(string name, IProgress<float> progress, CancellationToken token)
             where T : Object
         {
-            progress.Report(1);
+            progress?.Report(1);
             return LoadAsset<T>(name);
         }
 
