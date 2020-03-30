@@ -28,11 +28,12 @@ namespace EasyAssetBundle
                 return req.asset as T;
             }
 
-            public async UniTask LoadSceneAsync(string name, LoadSceneMode loadSceneMode, IProgress<float> progress,
+            public async UniTask<Scene> LoadSceneAsync(string name, LoadSceneMode loadSceneMode, IProgress<float> progress,
                 CancellationToken token)
             {
-                var req = SceneManager.LoadSceneAsync(name, loadSceneMode);
+                AsyncOperation req = SceneManager.LoadSceneAsync(name, loadSceneMode);
                 await req.ConfigureAwait(progress, cancellation: token);
+                return SceneManager.GetSceneByName(name);
             }
 
             public void Unload(bool unloadAllLoadedObjects)
