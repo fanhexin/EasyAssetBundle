@@ -132,7 +132,7 @@ namespace EasyAssetBundle
         {
             if (_abRefs.TryGetValue(name, out var abRef))
             {
-                progress.Report(1);
+                progress?.Report(1);
                 return abRef.GetValue();
             }
 
