@@ -3,6 +3,7 @@ using System;
 using System.Threading;
 using EasyAssetBundle.Common;
 using UniRx.Async;
+using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace EasyAssetBundle
@@ -41,6 +42,11 @@ namespace EasyAssetBundle
         {
             string name = _runtimeSettings.guid2BundleDic[guid].name;
             return LoadAssetAsync<T>(name, assetName, progress, token);
+        }
+
+        public Hash128? GetCachedVersionRecently(string abName)
+        {
+            return new Hash128();
         }
     }
 }

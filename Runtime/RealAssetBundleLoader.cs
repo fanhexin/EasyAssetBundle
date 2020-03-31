@@ -147,7 +147,7 @@ namespace EasyAssetBundle
                     (ab = DownloadHandlerAssetBundle.GetContent(request)) == null)
                 {
                     // 发生错误加载缓存的最新版本，没有再抛异常
-                    var hash = GetNewestCachedVersion(name);
+                    var hash = GetCachedVersionRecently(name);
                     if (hash == null)
                     {
                         throw new Exception($"{nameof(request)} {request.error}");
@@ -278,7 +278,7 @@ namespace EasyAssetBundle
             return path;
         }
 
-        Hash128? GetNewestCachedVersion(string abName)
+        public Hash128? GetCachedVersionRecently(string abName)
         {
             string path = Path.Combine(Caching.defaultCache.path, abName);
             if (!Directory.Exists(path))

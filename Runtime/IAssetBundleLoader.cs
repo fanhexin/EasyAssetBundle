@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using UniRx.Async;
+using UnityEngine;
 
 namespace EasyAssetBundle
 {
@@ -15,5 +16,7 @@ namespace EasyAssetBundle
         
         UniTask<(IAssetBundle ab, T asset)> LoadAssetByGuidAsync<T>(string guid, string assetName, IProgress<float> progress = null,
             CancellationToken token = default) where T : UnityEngine.Object;
+
+        Hash128? GetCachedVersionRecently(string abName);
     }
 }
