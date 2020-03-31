@@ -129,7 +129,7 @@ namespace EasyAssetBundle.Editor
 
         protected override void RenameEnded(RenameEndedArgs args)
         {
-            if (!args.acceptedRename)
+            if (!args.acceptedRename || args.newName == args.originalName)
             {
                 return;
             }
@@ -260,8 +260,10 @@ namespace EasyAssetBundle.Editor
 
         void PathCellGUI(Rect rect, TreeViewItem item)
         {
-            string[] paths = AssetDatabase.GetAssetPathsFromAssetBundle(item.displayName);
-            EditorGUI.LabelField(rect, paths.First());
+            string guid = _bundlesSp.GetArrayElementAtIndex(item.id - 1)
+                .FindPropertyRelative("_guid").stringValue;
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            EditorGUI.LabelField(rect, path);
         }
 
         protected override void ContextClickedItem(int id)
@@ -310,8 +312,10 @@ namespace EasyAssetBundle.Editor
                     .FindPropertyRelative("_name").stringValue;
                 foreach (string name in AssetDatabase.GetAssetBundleDependencies(abName, true))
                 {
-                    string path = AssetDatabase.GetAssetPathsFromAssetBundle(name).First();
-                    EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<Object>(path));
+                    foreach (string path in AssetDatabase.GetAssetPathsFromAssetBundle(name))
+                    {
+                        EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<Object>(path));
+                    }
                 }
             });
             menu.ShowAsContext();
