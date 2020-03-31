@@ -6,19 +6,19 @@ using EasyAssetBundle.Common;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace EasyAssetBundle.Editor
 {
     // todo 添加对undo的支持
-    // todo 列表中的bundlename实时通过Assetdatabase读取，只在Build的时候将bundlename写入config中
     // todo 添加针对每个不同的bundle设置压缩格式
-    // todo 添加对单个bundle包含多个文件的支持
     public class BundleTreeView : TreeView
     {
+        private const string INSIDE_DRAG_KEY = "inside_drag";
         private readonly SerializedProperty _bundlesSp;
         private readonly Func<TreeViewItem, IComparable>[] _itemFieldGetters;
         private readonly Action<Rect, TreeViewItem>[] _columnRenders;
+        private readonly Dictionary<string, int> _abName2ViewItemId = new Dictionary<string, int>();
+        private List<TreeViewItem> _sortedChildren;
 
         public BundleTreeView(TreeViewState state, SerializedProperty bundlesSp)
             :this(CreateColumnHeader(), state, bundlesSp)
@@ -63,40 +63,8 @@ namespace EasyAssetBundle.Editor
                 return;
             }
 
-            rootItem.children = Sort(header.state.sortedColumns).ToList();  
-            TreeToList(rootItem, rows);
-            Repaint();
-        }
-        
-        static void TreeToList (TreeViewItem root, IList<TreeViewItem> result)
-        {
-            if (root == null)
-                throw new NullReferenceException("root");
-            if (result == null)
-                throw new NullReferenceException("result");
-
-            result.Clear();
-	
-            if (root.children == null)
-                return;
-
-            Stack<TreeViewItem> stack = new Stack<TreeViewItem>();
-            for (int i = root.children.Count - 1; i >= 0; i--)
-                stack.Push(root.children[i]);
-
-            while (stack.Count > 0)
-            {
-                TreeViewItem current = stack.Pop();
-                result.Add(current);
-
-                if (current.hasChildren && current.children[0] != null)
-                {
-                    for (int i = current.children.Count - 1; i >= 0; i--)
-                    {
-                        stack.Push(current.children[i]);
-                    }
-                }
-            }
+            _sortedChildren = Sort(header.state.sortedColumns).ToList();
+            Reload();
         }
 
         IOrderedEnumerable<TreeViewItem> Sort(IReadOnlyList<int> sortedColumns, IOrderedEnumerable<TreeViewItem> orderedQuery = null, int index = 0)
@@ -124,7 +92,7 @@ namespace EasyAssetBundle.Editor
 
         protected override bool CanRename(TreeViewItem item)
         {
-            return true;
+            return item.depth == 0;
         }
 
         protected override void RenameEnded(RenameEndedArgs args)
@@ -135,58 +103,19 @@ namespace EasyAssetBundle.Editor
             }
 
             Rename(args.itemID, args.newName);
-            Save();
             Reload();
-        }
-
-        void Save()
-        {
-            _bundlesSp.serializedObject.ApplyModifiedProperties();
         }
 
         void Rename(int id, string newName)
         {
-            if (_bundlesSp.Any(newName))
+            if (AssetDatabase.GetAllAssetBundleNames().Contains(newName))
             {
                 MainWindow.instance.ShowNotification(new GUIContent($"Existing name: {newName}!"));
                 return;
             }
-            
-            var nameSp = _bundlesSp.GetArrayElementAtIndex(id - 1)
-                .FindPropertyRelative("_name");
-            string oldName = nameSp.stringValue;
-            if (oldName == newName)
-            {
-                return;
-            }
-            
-            AssetBundleRename(oldName, newName);
-            nameSp.stringValue = newName;
-        }
 
-        void AssetBundleRename(string originAbName, string newAbName)
-        {
-            string[] paths = AssetDatabase.GetAssetPathsFromAssetBundle(originAbName);
-            if (paths == null || paths.Length == 0)
-            {
-                throw new Exception("AssetBundle name not found!");
-            }
-
-            var importer = AssetImporter.GetAtPath(paths.First());
-            importer.assetBundleName = newAbName;
-            importer.SaveAndReimport();
-            AssetDatabase.RemoveUnusedAssetBundleNames();
-        }
-
-        Object LoadAsset(string abName)
-        {
-            string[] paths = AssetDatabase.GetAssetPathsFromAssetBundle(abName);
-            if (paths == null || paths.Length == 0)
-            {
-                throw new Exception("AssetBundle name not found!");
-            }
-
-            return AssetDatabase.LoadAssetAtPath<Object>(paths.First());
+            var item = FindItem(id, rootItem);
+            (item as BundleTreeViewItem).Rename(newName);
         }
 
         protected override bool CanMultiSelect(TreeViewItem item)
@@ -196,30 +125,50 @@ namespace EasyAssetBundle.Editor
 
         protected override TreeViewItem BuildRoot()
         {
-            return new TreeViewItem {id = 0, depth = -1, displayName = "Root"};
-        }
+            var root = new TreeViewItem {id = 0, depth = -1, displayName = "Root"};
+            if (_sortedChildren != null)
+            {
+                root.children = _sortedChildren;
+                _sortedChildren = null;
+                return root;
+            }
 
-        protected override IList<TreeViewItem> BuildRows(TreeViewItem root)
-        {
-            var rows = base.BuildRows(root);
-            
+            _abName2ViewItemId.Clear();
+            int j = _bundlesSp.arraySize;
+            var allItems = new List<TreeViewItem>();
             for (int i = 0; i < _bundlesSp.arraySize; i++)
             {
                 var item = _bundlesSp.GetArrayElementAtIndex(i);
                 string name = item.FindPropertyRelative("_name").stringValue;
+                
                 // todo 这里加载icon的过程要加载资源，太影响性能，争取找到更快的方法
                 // Object obj = LoadAsset(name);
                 // var icon = EditorGUIUtility.ObjectContent(obj, obj.GetType());
-                
-                rows.Add(new TreeViewItem
+
+                allItems.Add(new BundleTreeViewItem(_bundlesSp)
                 {
-                    id = i + 1,
-                    depth = 0,
+                    id = i + 1, 
+                    depth = 0, 
                     displayName = name
                     // icon = (Texture2D) icon.image
                 });
+
+                _abName2ViewItemId[name] = i + 1;
+
+                string[] paths = AssetDatabase.GetAssetPathsFromAssetBundle(name);
+                foreach (string path in paths)
+                {
+                    allItems.Add(new BundleAssetTreeViewItem
+                    {
+                        id = ++j, 
+                        depth = 1, 
+                        displayName = Path.GetFileName(path),
+                        path = path
+                    });
+                }
             }
-            return rows;
+            SetupParentsAndChildrenFromDepths(root, allItems);
+            return root;
         }
 
         protected override void RowGUI(RowGUIArgs args)
@@ -235,7 +184,12 @@ namespace EasyAssetBundle.Editor
 
         void TypeCellGUI(Rect rect, TreeViewItem item)
         {
-            SerializedProperty typeSp = _bundlesSp.GetArrayElementAtIndex(item.id - 1).FindPropertyRelative("_type");
+            if (item.depth > 0)
+            {
+                return;
+            }
+            
+            SerializedProperty typeSp = (item as BundleTreeViewItem).typeSp;
             EditorGUI.BeginChangeCheck();
             var t = (BundleType)EditorGUI.EnumPopup(rect, (BundleType)typeSp.enumValueIndex);
             if (!EditorGUI.EndChangeCheck())
@@ -246,10 +200,9 @@ namespace EasyAssetBundle.Editor
             IList<int> selection = GetSelection();
             if (selection.Count > 0 && selection.Contains(item.id))
             {
-                foreach (int id in selection)
+                foreach (var bundleTreeViewItem in FindRows(selection).Cast<BundleTreeViewItem>())
                 {
-                    _bundlesSp.GetArrayElementAtIndex(id - 1)
-                        .FindPropertyRelative("_type").enumValueIndex = (int) t;
+                    bundleTreeViewItem.type = t;
                 }
             }
             else
@@ -260,87 +213,177 @@ namespace EasyAssetBundle.Editor
 
         void PathCellGUI(Rect rect, TreeViewItem item)
         {
-            string guid = _bundlesSp.GetArrayElementAtIndex(item.id - 1)
-                .FindPropertyRelative("_guid").stringValue;
-            string path = AssetDatabase.GUIDToAssetPath(guid);
+            if (item.depth != 1)
+            {
+                return;
+            }
+            
+            string path = (item as BundleAssetTreeViewItem).path;
             EditorGUI.LabelField(rect, path);
         }
 
         protected override void ContextClickedItem(int id)
         {
+            // todo 右键菜单添加展开选择的多个父节点的功能
+            var viewItem = FindItem(id, rootItem);
             var menu = new GenericMenu();
-            menu.AddItem(new GUIContent("Add Extension"), false, () =>
+
+            if (viewItem.depth == 1)
             {
-                foreach (int selectId in GetSelection())
-                {
-                    string abName = _bundlesSp.GetArrayElementAtIndex(selectId - 1)
-                        .FindPropertyRelative("_name").stringValue;
-                    string path = AssetDatabase.GetAssetPathsFromAssetBundle(abName).First();
-                    Rename(selectId, $"{abName}_{Path.GetExtension(path).Replace(".", String.Empty)}");
-                    Save();
-                    Reload();
-                }
-            });
-            
-            menu.AddItem(new GUIContent("Ping"), false, () =>
-            {
-                string abName = _bundlesSp.GetArrayElementAtIndex(id - 1).FindPropertyRelative("_name").stringValue;
-                EditorGUIUtility.PingObject(LoadAsset(abName));
-            });
+                menu.AddItem(new GUIContent("Ping"),
+                    false,
+                    () => (viewItem as BundleAssetTreeViewItem).Ping());
+            }
             
             // todo 删除时需要提醒当前bundle是否被AssetBundleReference或者AssetReference引用
             menu.AddItem(new GUIContent("Delete"), false, () =>
             {
-                // Undo.RecordObject(_bundlesSp.serializedObject.targetObject, "delete");
                 IList<int> selection = GetSelection();
-                foreach (int selectId in selection.OrderByDescending(x => x))
+                IOrderedEnumerable<TreeViewItem> rows = FindRows(selection).OrderByDescending(x => x.id);
+                foreach (var item in rows.Where(x => x.depth == 0).Cast<BundleTreeViewItem>())
                 {
-                    int index = selectId - 1;
-                    string abName = _bundlesSp.GetArrayElementAtIndex(index).FindPropertyRelative("_name").stringValue;
-                    AssetBundleRename(abName, String.Empty);
-                    _bundlesSp.MoveArrayElement(index, _bundlesSp.arraySize - 1);
-                    --_bundlesSp.arraySize;
-                    _bundlesSp.serializedObject.ApplyModifiedProperties();
+                    item.Delete();    
                 }
+                
+                foreach (var item in rows.Where(x => x.depth == 1).Cast<BundleAssetTreeViewItem>())
+                {
+                    item.Delete();    
+                }
+
                 Reload();
             });
-            
-            menu.AddItem(new GUIContent("Show Dependencies"), false, () =>
+
+            if (viewItem.depth == 0)
             {
-                int selectId = GetSelection().First();
-                string abName = _bundlesSp.GetArrayElementAtIndex(selectId - 1)
-                    .FindPropertyRelative("_name").stringValue;
-                foreach (string name in AssetDatabase.GetAssetBundleDependencies(abName, true))
+                menu.AddItem(new GUIContent("Select Dependencies"), false, () =>
                 {
-                    foreach (string path in AssetDatabase.GetAssetPathsFromAssetBundle(name))
+                    int selectId = GetSelection().First();
+                    var item = FindItem(selectId, rootItem);
+                    var dependencies = AssetDatabase.GetAssetBundleDependencies(item.displayName, true)
+                        .Select(x => _abName2ViewItemId[x])
+                        .ToList();
+                    if (dependencies.Count == 0)
                     {
-                        EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<Object>(path));
+                        return;
                     }
-                }
-            });
+                    SetSelection(dependencies);
+                });
+            }
             menu.ShowAsContext();
+        }
+
+        protected override bool CanStartDrag(CanStartDragArgs args)
+        {
+            return FindRows(args.draggedItemIDs).All(x => x.depth != 0);
+        }
+
+        protected override void SetupDragAndDrop(SetupDragAndDropArgs args)
+        {
+            DragAndDrop.PrepareStartDrag();
+            string[] paths = FindRows(args.draggedItemIDs)
+                .Cast<BundleAssetTreeViewItem>()
+                .Select(x => x.path)
+                .ToArray();
+            
+            DragAndDrop.paths = paths;
+            DragAndDrop.SetGenericData(INSIDE_DRAG_KEY, true);
+            DragAndDrop.StartDrag("move");
         }
 
         protected override DragAndDropVisualMode HandleDragAndDrop(DragAndDropArgs args)
         {
+            return DragAndDrop.GetGenericData(INSIDE_DRAG_KEY) == null
+                ? DragAndDropFromOutside(args)
+                : DragAndDropFromInside(args);
+        }
+
+        private DragAndDropVisualMode DragAndDropFromInside(DragAndDropArgs args)
+        {
+            if (args.parentItem?.depth != 0)
+            {
+                return DragAndDropVisualMode.None;
+            }
+            
             if (!args.performDrop)
             {
-                return DragAndDropVisualMode.Copy;
+                return DragAndDropVisualMode.Move;
             }
 
             bool changed = false;
-            foreach (Object o in DragAndDrop.objectReferences)
+            foreach (string path in DragAndDrop.paths)
             {
-                if (string.IsNullOrEmpty(_bundlesSp.AddBundle(o))) 
+                var importer = AssetImporter.GetAtPath(path);
+                if (importer.assetBundleName == args.parentItem.displayName)
+                {
                     continue;
+                }
+                importer.assetBundleName = args.parentItem.displayName;
+                importer.SaveAndReimport();
                 changed = true;
             }
 
             if (!changed)
             {
-                return DragAndDropVisualMode.Rejected;
+                return DragAndDropVisualMode.None;
             }
 
+            Reload();
+            return DragAndDropVisualMode.Move;
+        }
+
+        private DragAndDropVisualMode DragAndDropFromOutside(DragAndDropArgs args)
+        {
+            if (args.parentItem?.depth == 1)
+            {
+                return DragAndDropVisualMode.None;
+            }
+            
+            if (!args.performDrop)
+            {
+                return DragAndDropVisualMode.Copy;
+            }
+
+            if (args.parentItem?.depth == 0)
+            {
+                foreach (string path in DragAndDrop.paths)
+                {
+                    var importer = AssetImporter.GetAtPath(path);
+                    importer.assetBundleName = args.parentItem.displayName;
+                    importer.SaveAndReimport();
+                }
+                Reload();
+                return DragAndDropVisualMode.Copy;
+            }
+
+            if (DragAndDrop.paths.Length > 1)
+            {
+                var menu = new GenericMenu();    
+                menu.AddItem(new GUIContent("Create Separate Bundles"), false, () =>
+                {
+                    foreach (string path in DragAndDrop.paths)
+                    {
+                        _bundlesSp.AddBundle(path);
+                    }
+                    Reload();
+                });
+
+                menu.AddItem(new GUIContent("Create One Bundle"), false, () =>
+                {
+                    string abName = "new_assetbundle_name";
+                    _bundlesSp.AddBundle(abName, DragAndDrop.paths);
+                    Reload();
+                    // todo 添加新条目立刻进入重命名状态
+                    // int id = _abName2ViewItemId[abName];
+                    // SetSelection(new []{id});
+                    // TreeViewItem item = FindItem(id, rootItem);
+                    // BeginRename(item);
+                });
+                
+                menu.ShowAsContext();
+                return DragAndDropVisualMode.Copy;
+            }
+
+            _bundlesSp.AddBundle(DragAndDrop.paths.First());
             Reload();
             return DragAndDropVisualMode.Copy;
         }
@@ -349,12 +392,7 @@ namespace EasyAssetBundle.Editor
         {
             foreach (string assetBundleName in assetBundleNames)
             {
-                string path = AssetDatabase.GetAssetPathsFromAssetBundle(assetBundleName).FirstOrDefault();
-                if (string.IsNullOrEmpty(path))
-                {
-                    continue;
-                }
-                _bundlesSp.AddBundle(path);
+                _bundlesSp.AddBundleByAbName(assetBundleName);
             }
 
             Reload();

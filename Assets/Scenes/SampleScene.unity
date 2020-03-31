@@ -313,10 +313,10 @@ MonoBehaviour:
     _assetName: GreenSphere
   - _guid: bf1c5548ab9b749f1bd2b4c3d3a24848
     _assetName: RedCube
-  - _guid: 11b9adeed3b9c446c9c650a43543784b
+  - _guid: 9b077e32-08be-4a0c-b305-8e8fad7686f8
     _assetName: RedSphere
   _testScene:
-    _guid: 9a10b2ffffa794d75a70118c20b9c056
+    _guid: a5b1ccab-17c3-4c80-a2a1-1523d3f53190
     _assetName: Test
 --- !u!4 &1153257788
 Transform:

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _httpServiceSettings:
     _enabled: 1
-    _port: 8887
+    _port: 8086
   _runtimeSettings:
     _version: 6
     _cdnUrl: 
@@ -35,9 +35,6 @@ MonoBehaviour:
     - _guid: bf1c5548ab9b749f1bd2b4c3d3a24848
       _name: redcube_prefab
       _type: 0
-    - _guid: 11b9adeed3b9c446c9c650a43543784b
-      _name: redsphere_prefab
-      _type: 0
     - _guid: 5d9dba3ff190d42448f6f319672dc871
       _name: blue_mat
       _type: 2
@@ -48,10 +45,13 @@ MonoBehaviour:
       _name: plane_mat
       _type: 2
     - _guid: a7b42ee17e5a241ad868d66b4a2fa41a
-      _name: red_mat
+      _name: red
       _type: 2
-    - _guid: 9a10b2ffffa794d75a70118c20b9c056
+    - _guid: a5b1ccab-17c3-4c80-a2a1-1523d3f53190
       _name: test
-      _type: 2
+      _type: 0
+    - _guid: 9b077e32-08be-4a0c-b305-8e8fad7686f8
+      _name: redsphere
+      _type: 0
   _buildOptions: 256
   _mode: 1
