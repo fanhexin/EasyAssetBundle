@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
 using EasyAssetBundle.Common.Editor;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
@@ -13,6 +16,8 @@ namespace EasyAssetBundle.Editor
     {
         public static MainWindow instance { get; private set; }
         private static readonly GUIContent _contentBuild = new GUIContent("Build");
+        private static readonly GUIContent _publishBuild = new GUIContent("Publish Build");
+        
         private TreeViewState _treeViewState;
         private BundleTreeView _bundleTreeView;
         
@@ -103,22 +108,33 @@ namespace EasyAssetBundle.Editor
             
             DropdownMenuButton(_contentBuild, menu =>
             {
-                menu.AddItem(new GUIContent("Build Content"), false, () =>
+                menu.AddItem(new GUIContent("Build Content"), false, () => BuildContent(processors));
+
+                var settings = Settings.instance.runtimeSettings;
+                if (!Uri.IsWellFormedUriString(settings.cdnUrl, UriKind.Absolute))
                 {
-                    AssetBundleBuilder.Build(Settings.instance.buildOptions, processors);
-                    ShowNotification(new GUIContent("Build success!"));
-                });
+                    menu.AddDisabledItem(_publishBuild);
+                }
+                else
+                {
+                    menu.AddItem(_publishBuild, false, async () =>
+                    {
+                        await TryUpdateLocalVersion();
+                        BuildContent(processors);
+                    });
+                }
 
                 menu.AddItem(new GUIContent("Rebuild"), false, () =>
                 {
                     AssetBundleBuilder.ClearCache();
-                    AssetBundleBuilder.Build(Settings.instance.buildOptions, processors);
-                    ShowNotification(new GUIContent("Build success!"));
+                    BuildContent(processors);
                 });
 
                 menu.AddItem(new GUIContent("Try Build"), false,
-                    () => AssetBundleBuilder.Build(Settings.instance.buildOptions | BuildAssetBundleOptions.DryRunBuild,
+                    () => AssetBundleBuilder.Build(
+                        Settings.instance.buildOptions | BuildAssetBundleOptions.DryRunBuild,
                         processors));
+                
                 menu.AddItem(new GUIContent("Clear Build Cache"), false, AssetBundleBuilder.ClearCache);
                 menu.AddItem(new GUIContent("Clear Runtime Cache"), false, () => Caching.ClearCache());
             });
@@ -132,6 +148,60 @@ namespace EasyAssetBundle.Editor
             {
                 _settingsSo.ApplyModifiedProperties();
             }
+        }
+
+        void ShowFetchVersionProgressBar(float progress)
+        {
+            EditorUtility.DisplayCancelableProgressBar("Operation", "Fetch remote version", progress);
+        }
+
+        async Task TryUpdateLocalVersion()
+        {
+            var settings = Settings.instance.runtimeSettings;
+            string url = $"{settings.cdnUrl}/{Application.platform.ToGenericName()}/version";
+            if (settings.webRequestProcessor != null)
+            {
+                url = settings.webRequestProcessor.HandleUrl(url);
+            }
+
+            ShowFetchVersionProgressBar(0);
+            var req = WebRequest.Create(url);
+            try
+            {
+                using (var resp = await req.GetResponseAsync())
+                {
+                    using (var stream = resp.GetResponseStream())
+                    {
+                        using (var reader = new StreamReader(stream))
+                        {
+                            int version = int.Parse(reader.ReadToEnd());
+                            ShowFetchVersionProgressBar(1);
+                            await Task.Delay(TimeSpan.FromSeconds(0.5));
+                            EditorUtility.ClearProgressBar();    
+                            
+                            bool ret = EditorUtility.DisplayDialog("Alert",
+                                $"Remote version is {version}. Update local version to {version + 1}?", "ok", "cancel");
+                            if (!ret)
+                            {
+                                return;
+                            }
+
+                            Settings.GetVersionSp(_settingsSo).intValue = version + 1;
+                            _settingsSo.ApplyModifiedProperties();
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();    
+            }
+        }
+
+        void BuildContent(IEnumerable<AbstractBuildProcessor> processors)
+        {
+            AssetBundleBuilder.Build(Settings.instance.buildOptions, processors);
+            ShowNotification(new GUIContent("Build success!"));
         }
 
         void DropdownMenuButton(GUIContent label, Action<GenericMenu> addMenuItems)
