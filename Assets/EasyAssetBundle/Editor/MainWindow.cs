@@ -69,9 +69,7 @@ namespace EasyAssetBundle.Editor
 
             if (GUILayout.Button("Settings", EditorStyles.toolbarButton, GUILayout.ExpandWidth(false)))
             {
-                var win = GetWindow<SettingsWindow>();
-                win.titleContent = new GUIContent("EasyAssetBundleSettings");
-                win.Show();
+                SettingsWindow.Display();
             }
             
             EditorGUI.BeginChangeCheck();
