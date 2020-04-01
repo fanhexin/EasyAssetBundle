@@ -82,7 +82,8 @@ namespace EasyAssetBundle
         async UniTask<AssetBundleManifest> LoadManifestAsync(string url, int version)
         {
             AssetBundle ab;
-            using (var req = UnityWebRequestAssetBundle.GetAssetBundle(url, (uint) version, 0))
+            using (var req = CreateWebRequest(url, s => 
+                UnityWebRequestAssetBundle.GetAssetBundle(s, (uint) version, 0)))
             {
                 req.timeout = _runtimeSettings.timeout;
                 await req.SendWebRequest();
@@ -153,8 +154,9 @@ namespace EasyAssetBundle
                         throw new Exception($"{nameof(request)} {request.error}");
                     }
 
-                    var newReq = await UnityWebRequestAssetBundle
-                        .GetAssetBundle(request.url, hash.Value)
+                    
+                    var newReq = await CreateWebRequest(request.url, s => 
+                            UnityWebRequestAssetBundle.GetAssetBundle(s, hash.Value))
                         .SendWebRequest()
                         .WaitUntilDone(progress, token);
                     ab = DownloadHandlerAssetBundle.GetContent(newReq);
@@ -208,7 +210,8 @@ namespace EasyAssetBundle
                 hash = remoteManifest.GetAssetBundleHash(name);
             }
 
-            var req = UnityWebRequestAssetBundle.GetAssetBundle(url, hash);
+            var req = CreateWebRequest(url, s => 
+                UnityWebRequestAssetBundle.GetAssetBundle(s, hash));
             req.timeout = _runtimeSettings.timeout;
             return req;
         }
@@ -295,6 +298,17 @@ namespace EasyAssetBundle
             return directories.OrderByDescending(Directory.GetCreationTime)
                 .Select(x => Hash128.Parse(Path.GetFileNameWithoutExtension(x)))
                 .First();
+        }
+
+        UnityWebRequest CreateWebRequest(string url, Func<string, UnityWebRequest> createFn)
+        {
+            if (_runtimeSettings.webRequestProcessor == null)
+            {
+                return createFn(url);
+            }
+
+            url = _runtimeSettings.webRequestProcessor.HandleUrl(url);
+            return _runtimeSettings.webRequestProcessor.HandleRequest(createFn(url));
         }
     }
 }
