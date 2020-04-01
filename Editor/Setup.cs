@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using EasyAssetBundle.Common;
 using UnityEditor;
 using EasyAssetBundle.Common.Editor;
@@ -17,10 +18,19 @@ namespace EasyAssetBundle.Editor
 
         private static void OnBuildPlayer(BuildPlayerOptions options)
         {
+            var settings = Settings.instance;
+            if (settings.runtimeSettings.bundles.Any(x => x.type == BundleType.Remote) &&
+                !settings.httpServiceSettings.enabled && 
+                string.IsNullOrEmpty(settings.runtimeSettings.cdnUrl))
+            {
+                EditorUtility.DisplayDialog("Error", "Need enable http service or specify a cdn url!", "ok");
+                SettingsWindow.Display();
+                return;
+            }
+            
             AssetBundleBuilder.Build(Settings.instance.buildOptions);
 
             var config = ScriptableObject.CreateInstance<Config>();
-            var settings = Settings.instance;
             config.runtimeSettings = new RuntimeSettings();
             config.runtimeSettings.Init(settings.runtimeSettings);
             if (settings.httpServiceSettings.enabled)

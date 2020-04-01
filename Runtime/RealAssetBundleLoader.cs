@@ -38,7 +38,14 @@ namespace EasyAssetBundle
             _runtimeSettings = runtimeSettings;
 
 #if UNITY_EDITOR
-            _remoteUrl = $"{Settings.instance.simulateUrl}/{_manifestName}";
+            if (Settings.instance.httpServiceSettings.enabled)
+            {
+                _remoteUrl = $"{Settings.instance.simulateUrl}/{_manifestName}";
+            }
+            else
+            {
+                _remoteUrl = string.IsNullOrEmpty(runtimeSettings.cdnUrl) ? string.Empty : $"{runtimeSettings.cdnUrl}/{_manifestName}";
+            }
 #else
             _remoteUrl = string.IsNullOrEmpty(runtimeSettings.cdnUrl) ? string.Empty : $"{runtimeSettings.cdnUrl}/{_manifestName}";
 #endif
@@ -269,6 +276,13 @@ namespace EasyAssetBundle
 
         string GetRemoteAbUrl(string name)
         {
+#if UNITY_EDITOR
+            // 编辑器模式下如果没有启用HTTPService或者设置cdn url，就直接从本地cache中加载
+            if (string.IsNullOrEmpty(_remoteUrl))
+            {
+                return GetLocalPath(name);
+            }
+#endif
             return $"{_remoteUrl}/{name}";
         }
 
