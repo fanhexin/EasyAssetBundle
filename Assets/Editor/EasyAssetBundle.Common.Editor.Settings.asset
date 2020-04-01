@@ -19,6 +19,8 @@ MonoBehaviour:
     _version: 6
     _cdnUrl: 
     _timeout: 10
+    _webRequestProcessor: {fileID: 11400000, guid: a41977d0e7a794316af97db5cdd4536e,
+      type: 2}
     _bundles:
     - _guid: 92cc6aa55703e42278534df4a6661b74
       _name: bluecube_prefab

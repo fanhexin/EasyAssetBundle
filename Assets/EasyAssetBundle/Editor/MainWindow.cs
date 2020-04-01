@@ -75,18 +75,6 @@ namespace EasyAssetBundle.Editor
             }
             
             EditorGUI.BeginChangeCheck();
-            
-            // EnumDropDownButton(new GUIContent($"Mode: {_config.mode}"), _config.mode, mode =>
-            // {
-            //     if (mode == Config.Mode.Real && !AssetBundleBuilder.hasBuilded)
-            //     {
-            //         ShowNotification(new GUIContent("Please build assetbundle first!"));
-            //     }
-            //     else
-            //     {
-            //         _config.mode = mode;
-            //     }
-            // });
 
             IEnumerable<AbstractBuildProcessor> processors = AssetBundleBuilder.GetProcessors();
             if (processors.Any())
@@ -101,6 +89,20 @@ namespace EasyAssetBundle.Editor
                 });
             }
 
+            var setting = Settings.instance;
+            EnumDropDownButton(new GUIContent($"Mode: {setting.mode}"), setting.mode, mode =>
+            {
+                if (mode == Settings.Mode.Real && !AssetBundleBuilder.hasBuilded)
+                {
+                    ShowNotification(new GUIContent("Please build assetbundle first!"));
+                }
+                else
+                {
+                    Settings.GetModeSp(_settingsSo).enumValueIndex = (int) mode;
+                    _settingsSo.ApplyModifiedProperties();
+                }
+            });
+            
             DropdownMenuButton(_contentBuild, menu =>
             {
                 menu.AddItem(new GUIContent("Build Content"), false, () =>

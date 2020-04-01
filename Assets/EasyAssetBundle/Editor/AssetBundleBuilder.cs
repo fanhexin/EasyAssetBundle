@@ -10,6 +10,8 @@ namespace EasyAssetBundle.Editor
 {
     public static class AssetBundleBuilder
     {
+        public static bool hasBuilded => Directory.Exists(Settings.currentTargetCachePath);
+
         public static void Build(BuildAssetBundleOptions buildOptions)
         {
             Build(buildOptions, GetProcessors());
