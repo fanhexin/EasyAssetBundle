@@ -63,7 +63,7 @@ namespace EasyAssetBundle
                 return version;
             }
 
-            using (var req = UnityWebRequest.Get($"{_remoteUrl}/version"))
+            using (var req = CreateWebRequest($"{_remoteUrl}/version", UnityWebRequest.Get))
             {
                 req.timeout = _runtimeSettings.timeout;
                 await req.SendWebRequest();

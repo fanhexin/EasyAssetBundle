@@ -21,7 +21,7 @@ namespace EasyAssetBundle.Editor
             var settings = Settings.instance;
             if (settings.runtimeSettings.bundles.Any(x => x.type == BundleType.Remote) &&
                 !settings.httpServiceSettings.enabled && 
-                string.IsNullOrEmpty(settings.runtimeSettings.cdnUrl))
+                !Uri.IsWellFormedUriString(settings.runtimeSettings.cdnUrl, UriKind.Absolute))
             {
                 EditorUtility.DisplayDialog("Error", "Need enable http service or specify a cdn url!", "ok");
                 SettingsWindow.Display();

@@ -16,8 +16,8 @@ MonoBehaviour:
     _enabled: 1
     _port: 8086
   _runtimeSettings:
-    _version: 6
-    _cdnUrl: 
+    _version: 7
+    _cdnUrl: http://192.168.199.188:8086
     _timeout: 10
     _webRequestProcessor: {fileID: 11400000, guid: a41977d0e7a794316af97db5cdd4536e,
       type: 2}

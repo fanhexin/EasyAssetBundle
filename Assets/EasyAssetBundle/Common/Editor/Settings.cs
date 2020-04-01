@@ -36,6 +36,11 @@ namespace EasyAssetBundle.Common.Editor
             return so.FindProperty(nameof(_runtimeSettings)).FindPropertyRelative("_bundles");
         }
 
+        public static SerializedProperty GetVersionSp(SerializedObject so)
+        {
+            return so.FindProperty(nameof(_runtimeSettings)).FindPropertyRelative("_version");
+        }
+
         public static SerializedProperty GetModeSp(SerializedObject so)
         {
             return so.FindProperty(nameof(_mode));
