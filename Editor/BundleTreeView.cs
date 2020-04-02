@@ -13,6 +13,7 @@ namespace EasyAssetBundle.Editor
     // todo 添加针对每个不同的bundle设置压缩格式
     public class BundleTreeView : TreeView
     {
+        private readonly EditorWindow _parentWindow;
         private const string INSIDE_DRAG_KEY = "inside_drag";
         private readonly SerializedProperty _bundlesSp;
         private readonly Func<TreeViewItem, IComparable>[] _itemFieldGetters;
@@ -20,10 +21,10 @@ namespace EasyAssetBundle.Editor
         private readonly Dictionary<string, int> _abName2ViewItemId = new Dictionary<string, int>();
         private List<TreeViewItem> _sortedChildren;
 
-        public BundleTreeView(TreeViewState state, SerializedProperty bundlesSp)
+        public BundleTreeView(TreeViewState state, SerializedProperty bundlesSp, EditorWindow parentWindow)
             :this(CreateColumnHeader(), state, bundlesSp)
         {
-            
+            _parentWindow = parentWindow;
         }
 
         private BundleTreeView(MultiColumnHeader header, TreeViewState state, SerializedProperty bundlesSp) 
@@ -110,7 +111,7 @@ namespace EasyAssetBundle.Editor
         {
             if (AssetDatabase.GetAllAssetBundleNames().Contains(newName))
             {
-                MainWindow.instance.ShowNotification(new GUIContent($"Existing name: {newName}!"));
+                _parentWindow.ShowNotification(new GUIContent($"Existing name: {newName}!"));
                 return;
             }
 
@@ -367,16 +368,17 @@ namespace EasyAssetBundle.Editor
                     Reload();
                 });
 
-                menu.AddItem(new GUIContent("Create One Bundle"), false, () =>
+                menu.AddItem(new GUIContent("Create One Bundle"), false, async () =>
                 {
+                    _parentWindow.Focus();
                     string abName = "new_assetbundle_name";
                     _bundlesSp.AddBundle(abName, DragAndDrop.paths);
                     Reload();
-                    // todo 添加新条目立刻进入重命名状态
-                    // int id = _abName2ViewItemId[abName];
-                    // SetSelection(new []{id});
-                    // TreeViewItem item = FindItem(id, rootItem);
-                    // BeginRename(item);
+                    
+                    var newItem = GetRows().Last();
+                    SetSelection(new[] {newItem.id});
+                    EndRename();
+                    BeginRename(newItem);
                 });
                 
                 menu.ShowAsContext();
