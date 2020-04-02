@@ -8,7 +8,7 @@ using Object = UnityEngine.Object;
 
 namespace EasyAssetBundle
 {
-    public class VirtualAssetBundleLoader : IAssetBundleLoader
+    internal class VirtualAssetBundleLoader : IAssetBundleLoader
     {
         private readonly RuntimeSettings _runtimeSettings;
 

@@ -6,6 +6,7 @@ using EasyAssetBundle.Common;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
+using Object = System.Object;
 
 namespace EasyAssetBundle.Editor
 {
@@ -142,16 +143,11 @@ namespace EasyAssetBundle.Editor
                 var item = _bundlesSp.GetArrayElementAtIndex(i);
                 string name = item.FindPropertyRelative("_name").stringValue;
                 
-                // todo 这里加载icon的过程要加载资源，太影响性能，争取找到更快的方法
-                // Object obj = LoadAsset(name);
-                // var icon = EditorGUIUtility.ObjectContent(obj, obj.GetType());
-
                 allItems.Add(new BundleTreeViewItem(_bundlesSp)
                 {
                     id = i + 1, 
                     depth = 0, 
                     displayName = name
-                    // icon = (Texture2D) icon.image
                 });
 
                 _abName2ViewItemId[name] = i + 1;
@@ -163,13 +159,27 @@ namespace EasyAssetBundle.Editor
                     {
                         id = ++j, 
                         depth = 1, 
-                        displayName = Path.GetFileName(path),
-                        path = path
+                        displayName = Path.GetFileNameWithoutExtension(path),
+                        path = path,
+                        icon = GetIcon(path)
                     });
                 }
             }
             SetupParentsAndChildrenFromDepths(root, allItems);
             return root;
+        }
+
+        Texture2D GetIcon(string assetPath)
+        {
+            string extension = Path.GetExtension(assetPath);
+            if (extension == ".ogg" ||
+                extension == ".mp3")
+            {
+                return EditorGUIUtility.IconContent("AudioClip Icon").image as Texture2D;
+            }
+
+            var obj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath);
+            return EditorGUIUtility.ObjectContent(obj, typeof(Object)).image as Texture2D;
         }
 
         protected override void RowGUI(RowGUIArgs args)
