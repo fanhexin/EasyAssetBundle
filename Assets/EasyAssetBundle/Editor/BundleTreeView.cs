@@ -17,7 +17,7 @@ namespace EasyAssetBundle.Editor
         private const string INSIDE_DRAG_KEY = "inside_drag";
         private readonly SerializedProperty _bundlesSp;
         private readonly Func<TreeViewItem, IComparable>[] _itemFieldGetters;
-        private readonly Action<Rect, TreeViewItem>[] _columnRenders;
+        private readonly Action<Rect, RowGUIArgs>[] _columnRenders;
         private readonly Dictionary<string, int> _abName2ViewItemId = new Dictionary<string, int>();
         private List<TreeViewItem> _sortedChildren;
 
@@ -34,7 +34,7 @@ namespace EasyAssetBundle.Editor
             showAlternatingRowBackgrounds = true;
             header.sortingChanged += HeaderOnsortingChanged;
             int columnNum = header.state.columns.Length;
-            _columnRenders = new Action<Rect, TreeViewItem>[columnNum];
+            _columnRenders = new Action<Rect, RowGUIArgs>[columnNum];
             _columnRenders[1] = TypeCellGUI;
             _columnRenders[2] = PathCellGUI;
             
@@ -179,18 +179,18 @@ namespace EasyAssetBundle.Editor
             for (int i = 1; i < args.GetNumVisibleColumns(); i++)
             {
                 Rect rect = args.GetCellRect(i);
-                _columnRenders[i](rect, args.item);
+                _columnRenders[i](rect, args);
             }
         }
 
-        void TypeCellGUI(Rect rect, TreeViewItem item)
+        void TypeCellGUI(Rect rect, RowGUIArgs args)
         {
-            if (item.depth > 0)
+            if (args.item.depth > 0)
             {
                 return;
             }
             
-            SerializedProperty typeSp = (item as BundleTreeViewItem).typeSp;
+            SerializedProperty typeSp = (args.item as BundleTreeViewItem).typeSp;
             EditorGUI.BeginChangeCheck();
             var t = (BundleType)EditorGUI.EnumPopup(rect, (BundleType)typeSp.enumValueIndex);
             if (!EditorGUI.EndChangeCheck())
@@ -199,7 +199,7 @@ namespace EasyAssetBundle.Editor
             }
             
             IList<int> selection = GetSelection();
-            if (selection.Count > 0 && selection.Contains(item.id))
+            if (selection.Count > 0 && selection.Contains(args.item.id))
             {
                 foreach (var bundleTreeViewItem in FindRows(selection).Cast<BundleTreeViewItem>())
                 {
@@ -212,15 +212,15 @@ namespace EasyAssetBundle.Editor
             }
         }
 
-        void PathCellGUI(Rect rect, TreeViewItem item)
+        void PathCellGUI(Rect rect, RowGUIArgs args)
         {
-            if (item.depth != 1)
+            if (args.item.depth != 1)
             {
                 return;
             }
             
-            string path = (item as BundleAssetTreeViewItem).path;
-            EditorGUI.LabelField(rect, path);
+            string path = (args.item as BundleAssetTreeViewItem).path;
+            EditorGUI.LabelField(rect, path, args.selected ? EditorStyles.whiteLabel : EditorStyles.label);
         }
 
         protected override void ContextClickedItem(int id)
