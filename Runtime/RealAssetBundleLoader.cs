@@ -16,7 +16,7 @@ namespace EasyAssetBundle
 {
     // todo 添加获取更新文件大小的支持(做成可选配置)
     // todo *添加检测和更新指定单个或多个bundle的功能
-    public partial class RealAssetBundleLoader : IAssetBundleLoader
+    internal partial class RealAssetBundleLoader : IAssetBundleLoader
     {
         private const string VERSION_KEY = "easyassetbundle_version";
 

@@ -7,7 +7,7 @@ using Object = UnityEngine.Object;
 
 namespace EasyAssetBundle
 {
-    public partial class RealAssetBundleLoader
+    internal partial class RealAssetBundleLoader
     {
         private struct RealAssetBundle : IAssetBundle
         {
