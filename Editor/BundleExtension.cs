@@ -54,7 +54,7 @@ namespace EasyAssetBundle.Editor
 
         public static string AddBundleByAbName(this SerializedProperty bundles, string abName)
         {
-            string guid = Guid.NewGuid().ToString();
+            string guid = Guid.NewGuid().ToString("N");
             var newItem = bundles.GetArrayElementAtIndex(bundles.arraySize++);
             newItem.FindPropertyRelative("_guid").stringValue = guid;
             newItem.FindPropertyRelative("_name").stringValue = abName;
