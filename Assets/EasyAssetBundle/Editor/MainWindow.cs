@@ -42,7 +42,7 @@ namespace EasyAssetBundle.Editor
             _settingsSo = new SerializedObject(Settings.instance);
 
             var bundlesSp = Settings.GetBundlesSp(_settingsSo);
-            _bundleTreeView = new BundleTreeView(_treeViewState, bundlesSp);
+            _bundleTreeView = new BundleTreeView(_treeViewState, bundlesSp, this);
             string[] assetBundleNames = AssetDatabase.GetAllAssetBundleNames();
             if (bundlesSp.arraySize == 0 && assetBundleNames.Length != 0)
             {
