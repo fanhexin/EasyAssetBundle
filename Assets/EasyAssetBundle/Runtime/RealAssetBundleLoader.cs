@@ -10,18 +10,16 @@ using EasyAssetBundle.Common;
 using UniRx.Async;
 using UnityEngine;
 using UnityEngine.Networking;
-using Object = UnityEngine.Object;
 
 namespace EasyAssetBundle
 {
     // todo 添加获取更新文件大小的支持(做成可选配置)
     // todo *添加检测和更新指定单个或多个bundle的功能
-    internal partial class RealAssetBundleLoader : IAssetBundleLoader
+    internal partial class RealAssetBundleLoader : BaseAssetBundleLoader
     {
         private const string VERSION_KEY = "easyassetbundle_version";
 
         readonly string _basePath;
-        private readonly RuntimeSettings _runtimeSettings;
         private readonly UniTask<AssetBundleManifest> _remoteManifest;
         private readonly UniTask<AssetBundleManifest> _localManifest;
 
@@ -33,9 +31,9 @@ namespace EasyAssetBundle
         private string _manifestName => Application.platform.ToGenericName();
 
         public RealAssetBundleLoader(string basePath, RuntimeSettings runtimeSettings)
+            : base(runtimeSettings)
         {
             _basePath = basePath;
-            _runtimeSettings = runtimeSettings;
 
 #if UNITY_EDITOR
             if (Settings.instance.httpServiceSettings.enabled)
@@ -223,7 +221,7 @@ namespace EasyAssetBundle
             return req;
         }
 
-        public async UniTask<IAssetBundle> LoadAsync(string name, IProgress<float> progress, CancellationToken token)
+        public override async UniTask<IAssetBundle> LoadAsync(string name, IProgress<float> progress, CancellationToken token)
         {
             string[] dependencies = (await _remoteManifest).GetAllDependencies(name);
             using (var handler = ProgressDispatcher.instance.Create(progress))
@@ -236,31 +234,6 @@ namespace EasyAssetBundle
                 var ab = await LoadAssetBundleAsync(name, progress, token);
                 return new RealAssetBundle(this, ab);
             }
-        }
-
-        public async UniTask<(IAssetBundle ab, T asset)> LoadAssetAsync<T>(string abName, string assetName,
-            IProgress<float> progress = null, CancellationToken token = default) where T : Object
-        {
-            using (var handler = ProgressDispatcher.instance.Create(progress))
-            {
-                IProgress<float> loadAssetProgress = handler.CreateProgress();
-                var ab = await LoadAsync(abName, handler.CreateProgress(), token);
-                var asset = await ab.LoadAssetAsync<T>(assetName, loadAssetProgress, token);
-                return (ab, asset);
-            }
-        }
-
-        public UniTask<IAssetBundle> LoadByGuidAsync(string guid, IProgress<float> progress, CancellationToken token)
-        {
-            string name = _runtimeSettings.guid2BundleDic[guid].name;
-            return LoadAsync(name, progress, token);
-        }
-
-        public UniTask<(IAssetBundle ab, T asset)> LoadAssetByGuidAsync<T>(string guid, string assetName,
-            IProgress<float> progress = null, CancellationToken token = default) where T : Object
-        {
-            string name = _runtimeSettings.guid2BundleDic[guid].name;
-            return LoadAssetAsync<T>(name, assetName, progress, token);
         }
 
         async void Unload(AssetBundle assetBundle, bool unloadAllLoadedObjects)
@@ -295,7 +268,7 @@ namespace EasyAssetBundle
             return path;
         }
 
-        public Hash128? GetCachedVersionRecently(string abName)
+        public override Hash128? GetCachedVersionRecently(string abName)
         {
             string path = Path.Combine(Caching.defaultCache.path, abName);
             if (!Directory.Exists(path))
