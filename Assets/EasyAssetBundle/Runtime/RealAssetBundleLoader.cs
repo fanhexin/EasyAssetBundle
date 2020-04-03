@@ -20,12 +20,11 @@ namespace EasyAssetBundle
         private const string VERSION_KEY = "easyassetbundle_version";
 
         readonly string _basePath;
-        private readonly UniTask<AssetBundleManifest> _remoteManifest;
-        private readonly UniTask<AssetBundleManifest> _localManifest;
-
         readonly Dictionary<string, SharedReference<AssetBundle>> _abRefs =
             new Dictionary<string, SharedReference<AssetBundle>>();
 
+        private AssetBundleManifest _remoteManifest;
+        private AssetBundleManifest _localManifest;
         private readonly string _remoteUrl;
 
         private string _manifestName => Application.platform.ToGenericName();
@@ -47,11 +46,14 @@ namespace EasyAssetBundle
 #else
             _remoteUrl = string.IsNullOrEmpty(runtimeSettings.cdnUrl) ? string.Empty : $"{runtimeSettings.cdnUrl}/{_manifestName}";
 #endif
-
-            _localManifest = LoadManifestAsync(GetLocalPath(_manifestName), _runtimeSettings.version);
-            _remoteManifest = LoadRemoteManifestAsync();
         }
 
+        public override async UniTask InitAsync()
+        {
+            _localManifest = await LoadManifestAsync(GetLocalPath(_manifestName), _runtimeSettings.version);
+            _remoteManifest = await LoadRemoteManifestAsync();
+        }
+        
         async UniTask<int> LoadVersionAsync()
         {
             int version = PlayerPrefs.GetInt(VERSION_KEY, _runtimeSettings.version);
@@ -108,10 +110,9 @@ namespace EasyAssetBundle
 
         async UniTask<AssetBundleManifest> LoadRemoteManifestAsync()
         {
-            var manifest = await _localManifest;
             if (string.IsNullOrEmpty(_remoteUrl))
             {
-                return manifest;
+                return _localManifest;
             }
 
             int version = await LoadVersionAsync();
@@ -119,7 +120,7 @@ namespace EasyAssetBundle
             // 如果发生错误加载远程manifest失败，直接将其设置为localmanifest
             if (remoteManifest == null)
             {
-                remoteManifest = manifest;
+                remoteManifest = _localManifest;
             }
 
             return remoteManifest;
@@ -142,7 +143,7 @@ namespace EasyAssetBundle
                 return abRef.GetValue();
             }
 
-            var webRequest = await CreateLoadAssetBundleReq(name);
+            var webRequest = CreateLoadAssetBundleReq(name);
             //todo 原来用的 configureAwait在首次调用时不会上报Progress，也许升级unitytask版本试试
             using (var request = await webRequest.SendWebRequest().WaitUntilDone(progress, token))
             {
@@ -174,11 +175,10 @@ namespace EasyAssetBundle
         }
 
         // todo 重构缩减重复代码
-        async UniTask<UnityWebRequest> CreateLoadAssetBundleReq(string name)
+        UnityWebRequest CreateLoadAssetBundleReq(string name)
         {
             string url = string.Empty;
             Hash128 hash;
-            AssetBundleManifest remoteManifest = await _remoteManifest;
 
             // 找不到的是增量更新的AssetBundle，直接远程加载处理，因为只可能在远端
             if (_runtimeSettings.name2BundleDic.TryGetValue(name, out var bundle))
@@ -187,10 +187,10 @@ namespace EasyAssetBundle
                 {
                     case BundleType.Static:
                         url = GetLocalPath(name);
-                        hash = (await _localManifest).GetAssetBundleHash(name);
+                        hash = _localManifest.GetAssetBundleHash(name);
                         break;
                     case BundleType.Patchable:
-                        var localHash = (await _localManifest).GetAssetBundleHash(name);
+                        var localHash = _localManifest.GetAssetBundleHash(name);
                         if (!Caching.IsVersionCached(GetLocalPath(name), localHash))
                         {
                             url = GetLocalPath(name);
@@ -199,11 +199,11 @@ namespace EasyAssetBundle
                         }
 
                         url = GetRemoteAbUrl(name);
-                        hash = remoteManifest.GetAssetBundleHash(name);
+                        hash = _remoteManifest.GetAssetBundleHash(name);
                         break;
                     case BundleType.Remote:
                         url = GetRemoteAbUrl(name);
-                        hash = remoteManifest.GetAssetBundleHash(name);
+                        hash = _remoteManifest.GetAssetBundleHash(name);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -212,7 +212,7 @@ namespace EasyAssetBundle
             else
             {
                 url = GetRemoteAbUrl(name);
-                hash = remoteManifest.GetAssetBundleHash(name);
+                hash = _remoteManifest.GetAssetBundleHash(name);
             }
 
             var req = CreateWebRequest(url, s => 
@@ -223,7 +223,12 @@ namespace EasyAssetBundle
 
         public override async UniTask<IAssetBundle> LoadAsync(string name, IProgress<float> progress, CancellationToken token)
         {
-            string[] dependencies = (await _remoteManifest).GetAllDependencies(name);
+            if (_localManifest == null && _remoteManifest == null)
+            {
+                await InitAsync();
+            }
+            
+            string[] dependencies = _remoteManifest.GetAllDependencies(name);
             using (var handler = ProgressDispatcher.instance.Create(progress))
             {
                 progress = handler.CreateProgress();
@@ -236,9 +241,9 @@ namespace EasyAssetBundle
             }
         }
 
-        async void Unload(AssetBundle assetBundle, bool unloadAllLoadedObjects)
+        void Unload(AssetBundle assetBundle, bool unloadAllLoadedObjects)
         {
-            string[] dependencies = (await _remoteManifest).GetAllDependencies(assetBundle.name);
+            string[] dependencies = _remoteManifest.GetAllDependencies(assetBundle.name);
             foreach (string dependency in dependencies)
             {
                 _abRefs[dependency].Dispose(unloadAllLoadedObjects);
