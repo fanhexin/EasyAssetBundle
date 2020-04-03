@@ -102,12 +102,13 @@ namespace EasyAssetBundle.Editor
 
         protected override void RenameEnded(RenameEndedArgs args)
         {
-            if (!args.acceptedRename || args.newName == args.originalName)
+            string newName = args.newName.Trim();
+            if (!args.acceptedRename || newName == args.originalName)
             {
                 return;
             }
 
-            Rename(args.itemID, args.newName);
+            Rename(args.itemID, newName);
             Reload();
         }
 
@@ -238,6 +239,11 @@ namespace EasyAssetBundle.Editor
 
         void SizeCellGUI(Rect rect, RowGUIArgs args)
         {
+            if (args.item.depth != 0)
+            {
+                return;
+            }
+            
             string cachePath = Path.Combine(Settings.currentTargetCachePath, args.item.displayName);
             if (!File.Exists(cachePath))
             {
