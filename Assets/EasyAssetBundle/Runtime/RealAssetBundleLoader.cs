@@ -224,7 +224,7 @@ namespace EasyAssetBundle
 
         public override async UniTask<IAssetBundle> LoadAsync(string name, IProgress<float> progress, CancellationToken token)
         {
-            if (_localManifest == null && _remoteManifest == null)
+            if (_localManifest == null || _remoteManifest == null)
             {
                 if (_initTask == null)
                 {
