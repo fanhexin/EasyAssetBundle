@@ -20,7 +20,8 @@ namespace EasyAssetBundle
         {
             return _runtimeSettings.guid2BundleDic[guid].name;
         }
-        
+
+        public abstract UniTask InitAsync();
         public abstract UniTask<IAssetBundle> LoadAsync(string name, IProgress<float> progress = null, CancellationToken token = default);
 
         public async UniTask<(IAssetBundle ab, T asset)> LoadAssetAsync<T>(string abName, string assetName, IProgress<float> progress = null,

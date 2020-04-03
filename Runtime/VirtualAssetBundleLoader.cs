@@ -13,7 +13,12 @@ namespace EasyAssetBundle
             : base(runtimeSettings)
         {
         }
-        
+
+        public override UniTask InitAsync()
+        {
+            return UniTask.CompletedTask;
+        }
+
         public override async UniTask<IAssetBundle> LoadAsync(string name, IProgress<float> progress, CancellationToken token)
         {
             progress?.Report(1);
