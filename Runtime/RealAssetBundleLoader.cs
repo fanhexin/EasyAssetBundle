@@ -26,6 +26,7 @@ namespace EasyAssetBundle
         private AssetBundleManifest _remoteManifest;
         private AssetBundleManifest _localManifest;
         private readonly string _remoteUrl;
+        private UniTask? _initTask;
 
         private string _manifestName => Application.platform.ToGenericName();
 
@@ -225,7 +226,12 @@ namespace EasyAssetBundle
         {
             if (_localManifest == null && _remoteManifest == null)
             {
-                await InitAsync();
+                if (_initTask == null)
+                {
+                    _initTask = InitAsync();
+                }
+                await _initTask.Value;
+                _initTask = null;
             }
             
             string[] dependencies = _remoteManifest.GetAllDependencies(name);
