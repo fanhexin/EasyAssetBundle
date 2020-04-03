@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using EasyAssetBundle.Common;
+using EasyAssetBundle.Common.Editor;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
@@ -37,13 +38,15 @@ namespace EasyAssetBundle.Editor
             int columnNum = header.state.columns.Length;
             _columnRenders = new Action<Rect, RowGUIArgs>[columnNum];
             _columnRenders[1] = TypeCellGUI;
-            _columnRenders[2] = PathCellGUI;
+            _columnRenders[2] = SizeCellGUI;
+            _columnRenders[3] = PathCellGUI;
             
             _bundlesSp = bundlesSp;
             _itemFieldGetters = new Func<TreeViewItem, IComparable>[columnNum];
             _itemFieldGetters[0] = item => item.displayName;
             _itemFieldGetters[1] = item => _bundlesSp.GetArrayElementAtIndex(item.id - 1)
                 .FindPropertyRelative("_type").enumValueIndex;
+            _itemFieldGetters[2] = item => new FileInfo(Path.Combine(Settings.currentTargetCachePath, item.displayName)).Length;
             Reload();
         }
 
@@ -231,6 +234,46 @@ namespace EasyAssetBundle.Editor
             
             string path = (args.item as BundleAssetTreeViewItem).path;
             EditorGUI.LabelField(rect, path, args.selected ? EditorStyles.whiteLabel : EditorStyles.label);
+        }
+
+        void SizeCellGUI(Rect rect, RowGUIArgs args)
+        {
+            string cachePath = Path.Combine(Settings.currentTargetCachePath, args.item.displayName);
+            if (!File.Exists(cachePath))
+            {
+                return;
+            }
+            
+            long size = new FileInfo(cachePath).Length;
+            EditorGUI.LabelField(rect, SizeSuffix(size), args.selected ? EditorStyles.whiteLabel : EditorStyles.label);
+        }
+        
+        static readonly string[] SizeSuffixes = 
+            { "bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
+        static string SizeSuffix(Int64 value, int decimalPlaces = 1)
+        {
+            if (decimalPlaces < 0) { throw new ArgumentOutOfRangeException("decimalPlaces"); }
+            if (value < 0) { return "-" + SizeSuffix(-value); } 
+            if (value == 0) { return string.Format("{0:n" + decimalPlaces + "} bytes", 0); }
+
+            // mag is 0 for bytes, 1 for KB, 2, for MB, etc.
+            int mag = (int)Math.Log(value, 1024);
+
+            // 1L << (mag * 10) == 2 ^ (10 * mag) 
+            // [i.e. the number of bytes in the unit corresponding to mag]
+            decimal adjustedSize = (decimal)value / (1L << (mag * 10));
+
+            // make adjustment when the value is large enough that
+            // it would round up to 1000 or more
+            if (Math.Round(adjustedSize, decimalPlaces) >= 1000)
+            {
+                mag += 1;
+                adjustedSize /= 1024;
+            }
+
+            return string.Format("{0:n" + decimalPlaces + "} {1}", 
+                adjustedSize, 
+                SizeSuffixes[mag]);
         }
 
         protected override void ContextClickedItem(int id)
@@ -440,13 +483,22 @@ namespace EasyAssetBundle.Editor
                 
                 new MultiColumnHeaderState.Column
                 {
+                    headerContent = new GUIContent("Size"),
+                    headerTextAlignment = TextAlignment.Left,
+                    canSort = true,
+                    sortingArrowAlignment = TextAlignment.Right,
+                    autoResize = true,
+                    allowToggleVisibility = true
+                },
+                
+                new MultiColumnHeaderState.Column
+                {
                     headerContent = new GUIContent("Path"),
                     headerTextAlignment = TextAlignment.Left,
                     canSort = false,
                     sortingArrowAlignment = TextAlignment.Right,
                     autoResize = true,
-                    allowToggleVisibility = true,
-                    
+                    allowToggleVisibility = true
                 }
             });    
             
