@@ -73,8 +73,7 @@ namespace EasyAssetBundle.Common.Editor
             }
         }
 
-        public static string cacheBasePath => Path.Combine(Path.GetDirectoryName(Application.dataPath), "Library",
-            "EasyAssetBundleCache");
+        public static string cacheBasePath => Path.Combine(Path.GetDirectoryName(Application.dataPath), "EasyAssetBundleCache");
         
         public static string currentTargetCachePath =>
             Path.Combine(cacheBasePath , EditorUserBuildSettings.activeBuildTarget.ToString());
