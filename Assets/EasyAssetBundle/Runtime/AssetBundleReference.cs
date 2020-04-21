@@ -1,19 +1,16 @@
 using System;
 using System.Threading;
 using UniRx.Async;
-using UnityEngine;
 
 namespace EasyAssetBundle
 {
     [Serializable]
-    public class AssetBundleReference
+    public class AssetBundleReference : BaseAssetBundleReference
     {
-        [SerializeField]
-        string _guid;
-        
-        public UniTask<IAssetBundle> LoadAsync(IProgress<float> progress = null, CancellationToken token = default)
+        public UniTask<T> LoadAssetAsync<T>(string assetName, IProgress<float> progress = null,
+            CancellationToken token = default) where T : UnityEngine.Object
         {
-            return AssetBundleLoader.instance.LoadByGuidAsync(_guid, progress, token);
+            return base.LoadAssetAsync<T>(assetName, progress, token);
         }
     }
 }
