@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using UnityEditor;
 using UnityEngine;
@@ -58,18 +60,14 @@ namespace EasyAssetBundle.Common.Editor
         {
             get
             {
-                string localIP = "0.0.0.0";
-                var host = Dns.GetHostEntry(Dns.GetHostName());
-                foreach (IPAddress ip in host.AddressList)
-                {
-                    if (ip.AddressFamily == AddressFamily.InterNetwork)
-                    {
-                        localIP = ip.ToString();
-                        break;
-                    }
-                }
+                var address = NetworkInterface.GetAllNetworkInterfaces()
+                    .Where(x => x.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 ||
+                                x.NetworkInterfaceType == NetworkInterfaceType.Ethernet ||
+                                x.NetworkInterfaceType == NetworkInterfaceType.GigabitEthernet)
+                    .SelectMany(x => x.GetIPProperties().UnicastAddresses)
+                    .First(x => x.Address.AddressFamily == AddressFamily.InterNetwork);
 
-                return $"http://{localIP}:{_httpServiceSettings.port}";
+                return $"http://{address.Address}:{_httpServiceSettings.port}";
             }
         }
 
