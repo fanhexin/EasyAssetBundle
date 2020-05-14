@@ -51,7 +51,7 @@ namespace EasyAssetBundle
 
         public override async UniTask InitAsync()
         {
-            _localManifest = await LoadManifestAsync(GetLocalPath(_manifestName), _runtimeSettings.version);
+            _localManifest = await LoadManifestAsync(GetLocalPath(_manifestName));
             _remoteManifest = await LoadRemoteManifestAsync();
         }
         
@@ -87,26 +87,35 @@ namespace EasyAssetBundle
             return version;
         }
 
-        async UniTask<AssetBundleManifest> LoadManifestAsync(string url, int version)
+        async UniTask<AssetBundleManifest> LoadManifestAsync(string url, Func<string, UnityWebRequest> createFn)
         {
-            AssetBundle ab;
-            using (var req = CreateWebRequest(url, s => 
-                UnityWebRequestAssetBundle.GetAssetBundle(s, (uint) version, 0)))
-            {
-                req.timeout = _runtimeSettings.timeout;
-                await req.SendWebRequest();
-                
-                if (req.isNetworkError || req.isHttpError)
-                {
-                    return null;
-                }
+             AssetBundle ab;
+             using (var req = CreateWebRequest(url, createFn))
+             {
+                 req.timeout = _runtimeSettings.timeout;
+                 await req.SendWebRequest();
+                 
+                 if (req.isNetworkError || req.isHttpError)
+                 {
+                     return null;
+                 }
+ 
+                 ab = DownloadHandlerAssetBundle.GetContent(req);
+             }
+ 
+             var manifest = await ab.LoadAssetAsync<AssetBundleManifest>(nameof(AssetBundleManifest));
+             ab.Unload(false);
+             return manifest as AssetBundleManifest;           
+        }
 
-                ab = DownloadHandlerAssetBundle.GetContent(req);
-            }
+        UniTask<AssetBundleManifest> LoadManifestAsync(string url)
+        {
+            return LoadManifestAsync(url, UnityWebRequestAssetBundle.GetAssetBundle);
+        }
 
-            var manifest = await ab.LoadAssetAsync<AssetBundleManifest>(nameof(AssetBundleManifest));
-            ab.Unload(false);
-            return manifest as AssetBundleManifest;
+        UniTask<AssetBundleManifest> LoadManifestAsync(string url, int version)
+        {
+            return LoadManifestAsync(url, s => UnityWebRequestAssetBundle.GetAssetBundle(s, (uint) version, 0));
         }
 
         async UniTask<AssetBundleManifest> LoadRemoteManifestAsync()
