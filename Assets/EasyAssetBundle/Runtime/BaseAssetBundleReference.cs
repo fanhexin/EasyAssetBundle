@@ -10,7 +10,7 @@ namespace EasyAssetBundle
     {
         [SerializeField] string _guid;
 
-        IAssetBundle _assetBundle;
+        UniTask<IAssetBundle>? _assetBundle;
 
         protected async UniTask<T> LoadAssetAsync<T>(string assetName, IProgress<float> progress = null,
             CancellationToken token = default) where T : UnityEngine.Object
@@ -20,17 +20,18 @@ namespace EasyAssetBundle
             {
                 handler = ProgressDispatcher.instance.Create(progress);
                 progress = handler.CreateProgress();
-                _assetBundle = await AssetBundleLoader.instance.LoadByGuidAsync(_guid, handler.CreateProgress(), token);
+                _assetBundle = AssetBundleLoader.instance.LoadByGuidAsync(_guid, handler.CreateProgress(), token);
             }
 
-            var ret = await _assetBundle.LoadAssetAsync<T>(assetName, progress, token);
+            var ab = await _assetBundle.Value;
+            var ret = await ab.LoadAssetAsync<T>(assetName, progress, token);
             handler?.Dispose();
             return ret;
         }
 
-        public void Unload(bool unloadAllLoadedObjects = true)
+        public async void Unload(bool unloadAllLoadedObjects = true)
         {
-            _assetBundle?.Unload(unloadAllLoadedObjects);
+            (await _assetBundle.Value)?.Unload(unloadAllLoadedObjects);
             _assetBundle = null;
         }
     }
