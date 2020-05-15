@@ -55,10 +55,12 @@ namespace EasyAssetBundle.Editor
             {
                 BuildPipeline.BuildAssetBundles(cachePath, buildOptions, buildTarget);
             }
-            
-            File.WriteAllText(Path.Combine(cachePath, "version"), Settings.instance.runtimeSettings.version.ToString());
 
-            if (Settings.instance.httpServiceSettings.enabled)
+            var settings = Settings.instance;
+            File.WriteAllText(Path.Combine(cachePath, "version"), settings.runtimeSettings.version.ToString());
+
+            if (settings.httpServiceSettings.enabled ||
+                Uri.IsWellFormedUriString(settings.runtimeSettings.cdnUrl, UriKind.Absolute))
             {
                 CopyToHostedData(buildTarget);
             }
