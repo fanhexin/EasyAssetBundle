@@ -8,6 +8,7 @@ namespace EasyAssetBundle
 {
     public interface IAssetBundle
     {
+        string name { get; }
         UniTask<T> LoadAssetAsync<T>(string name, IProgress<float> progress = null, CancellationToken token = default)
             where T : Object;
 

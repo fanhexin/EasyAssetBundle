@@ -13,16 +13,16 @@ namespace EasyAssetBundle
 {
     internal struct VirtualAssetBundle : IAssetBundle
     {
-        readonly string _assetBundleName;
+        public string name { get; }
 
         public VirtualAssetBundle(string assetBundleName)
         {
-            _assetBundleName = assetBundleName;
+            name = assetBundleName;
         }
 
         private T LoadAsset<T>(string name) where T : Object
         {
-            string[] paths = AssetDatabase.GetAssetPathsFromAssetBundleAndAssetName(_assetBundleName, name);
+            string[] paths = AssetDatabase.GetAssetPathsFromAssetBundleAndAssetName(this.name, name);
             if (paths.Length == 0)
             {
                 return null;
