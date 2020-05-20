@@ -63,7 +63,7 @@ namespace EasyAssetBundle.Editor
             _bundlesSp.MoveArrayElement(id - 1, _bundlesSp.arraySize - 1);
             --_bundlesSp.arraySize;
             _bundlesSp.serializedObject.ApplyModifiedProperties();
-            AssetDatabase.RemoveAssetBundleName(displayName, false);
+            AssetDatabase.RemoveAssetBundleName(displayName, true);
         }
     }
 }
