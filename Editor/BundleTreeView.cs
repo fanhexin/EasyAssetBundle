@@ -431,7 +431,7 @@ namespace EasyAssetBundle.Editor
                 {
                     _parentWindow.Focus();
                     string abName = "new_assetbundle_name";
-                    _bundlesSp.AddBundle(abName, DragAndDrop.paths);
+                    _bundlesSp.AddBundle(abName, BundleType.Static, DragAndDrop.paths);
                     Reload();
                     
                     var newItem = GetRows().Last();
