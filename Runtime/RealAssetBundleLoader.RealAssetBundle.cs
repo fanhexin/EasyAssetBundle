@@ -11,6 +11,7 @@ namespace EasyAssetBundle
     {
         private struct RealAssetBundle : IAssetBundle
         {
+            public string name => _assetBundle.name;
             readonly RealAssetBundleLoader _loader;
             readonly AssetBundle _assetBundle;
 
