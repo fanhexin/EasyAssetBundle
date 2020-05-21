@@ -13,6 +13,9 @@ namespace EasyAssetBundle
 
         [SerializeField] string _assetName;
 
+        public string guid => _guid;
+        public string assetName => _assetName;
+
         IAssetBundle _assetBundle;
 
         public async UniTask<Scene> LoadAsync(LoadSceneMode loadSceneMode = LoadSceneMode.Additive,

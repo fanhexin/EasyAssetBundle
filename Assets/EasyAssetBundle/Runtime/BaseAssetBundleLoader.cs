@@ -44,7 +44,7 @@ namespace EasyAssetBundle
         public UniTask<(IAssetBundle ab, T asset)> LoadAssetByGuidAsync<T>(string guid, string assetName, IProgress<float> progress = null,
             CancellationToken token = default) where T : Object
         {
-            return LoadAssetByGuidAsync<T>(GuidToName(guid), assetName, progress, token);
+            return LoadAssetAsync<T>(GuidToName(guid), assetName, progress, token);
         }
 
         public abstract Hash128? GetCachedVersionRecently(string abName);
