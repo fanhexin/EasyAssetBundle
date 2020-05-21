@@ -11,6 +11,7 @@ namespace EasyAssetBundle.Common
         [SerializeField] private int _version = 1;
         [SerializeField] private string _cdnUrl;
         [SerializeField] private int _timeout = 3;
+        [SerializeField] private string _encryptKey;
         [SerializeField] private WebRequestProcessor _webRequestProcessor;
         [SerializeField] private Bundle[] _bundles;
 
@@ -19,6 +20,7 @@ namespace EasyAssetBundle.Common
         public int timeout => _timeout;
         public IReadOnlyList<Bundle> bundles => _bundles;
         public WebRequestProcessor webRequestProcessor => _webRequestProcessor;
+        public string encryptKey => _encryptKey;
         
         public IReadOnlyDictionary<string, Bundle> guid2BundleDic { get; private set; }
         public IReadOnlyDictionary<string, Bundle> name2BundleDic { get; private set; }
