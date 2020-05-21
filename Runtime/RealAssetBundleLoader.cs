@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using EasyAssetBundle.Common;
 using UniRx.Async;
@@ -33,6 +34,11 @@ namespace EasyAssetBundle
         public RealAssetBundleLoader(string basePath, RuntimeSettings runtimeSettings)
             : base(runtimeSettings)
         {
+            if (!string.IsNullOrEmpty(runtimeSettings.encryptKey))
+            {
+                var method = typeof(AssetBundle).GetMethod("SetAssetBundleDecryptKey", BindingFlags.Static | BindingFlags.Public);
+                method?.Invoke(null, new[] {runtimeSettings.encryptKey});
+            }
             _basePath = basePath;
 
 #if UNITY_EDITOR

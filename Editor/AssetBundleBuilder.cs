@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using EasyAssetBundle.Common;
 using EasyAssetBundle.Common.Editor;
 using UnityEditor;
@@ -46,6 +47,18 @@ namespace EasyAssetBundle.Editor
             {
                 Directory.CreateDirectory(cachePath);
             }
+
+            var settings = Settings.instance;
+            // 如果是中国版加入AssetBundle加密Build
+            if (Enum.GetNames(typeof(BuildAssetBundleOptions)).Contains("EnableProtection") && 
+                buildOptions.HasFlag(Enum.Parse(typeof(BuildAssetBundleOptions), "EnableProtection") as Enum) &&
+                !string.IsNullOrEmpty(settings.runtimeSettings.encryptKey))
+            {
+                // var method = BuildPipeline.SetAssetBundleEncryptKey()
+                var method = typeof(BuildPipeline).GetMethod("SetAssetBundleEncryptKey",
+                    BindingFlags.Static | BindingFlags.Public);
+                method.Invoke(null, new[] {settings.runtimeSettings.encryptKey});
+            }
             
             if (buildMap != null && buildMap.Length != 0)
             {
@@ -56,7 +69,6 @@ namespace EasyAssetBundle.Editor
                 BuildPipeline.BuildAssetBundles(cachePath, buildOptions, buildTarget);
             }
 
-            var settings = Settings.instance;
             File.WriteAllText(Path.Combine(cachePath, "version"), settings.runtimeSettings.version.ToString());
 
             if (settings.httpServiceSettings.enabled ||
