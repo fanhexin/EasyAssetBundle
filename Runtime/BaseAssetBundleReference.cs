@@ -9,6 +9,7 @@ namespace EasyAssetBundle
     public abstract class BaseAssetBundleReference
     {
         [SerializeField] string _guid;
+        public string guid => _guid;
 
         UniTask<IAssetBundle>? _assetBundle;
 
