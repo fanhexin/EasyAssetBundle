@@ -35,7 +35,7 @@ namespace EasyAssetBundle.Common
             name2BundleDic = _bundles.ToDictionary(x => x.name);
         }
 
-        public RuntimeSettings(RuntimeSettings runtimeSettings)
+        public void Init(RuntimeSettings runtimeSettings)
         {
             _version = runtimeSettings._version;
             _cdnUrl = runtimeSettings._cdnUrl;

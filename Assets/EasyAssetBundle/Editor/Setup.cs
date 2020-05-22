@@ -31,7 +31,8 @@ namespace EasyAssetBundle.Editor
             AssetBundleBuilder.Build(Settings.instance.buildOptions);
 
             var config = ScriptableObject.CreateInstance<Config>();
-            config.runtimeSettings = new RuntimeSettings(settings.runtimeSettings);
+            config.runtimeSettings = new RuntimeSettings();
+            config.runtimeSettings.Init(settings.runtimeSettings);
             if (settings.httpServiceSettings.enabled)
             {
                 var so = new SerializedObject(config);
