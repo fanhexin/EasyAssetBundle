@@ -35,13 +35,14 @@ namespace EasyAssetBundle.Common
             name2BundleDic = _bundles.ToDictionary(x => x.name);
         }
 
-        public void Init(RuntimeSettings runtimeSettings)
+        public RuntimeSettings(RuntimeSettings runtimeSettings)
         {
             _version = runtimeSettings._version;
             _cdnUrl = runtimeSettings._cdnUrl;
             _timeout = runtimeSettings._timeout;
             _webRequestProcessor = runtimeSettings._webRequestProcessor;
             _bundles = runtimeSettings._bundles;
+            _encryptKey = runtimeSettings._encryptKey;
         }
     }
 }
