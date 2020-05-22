@@ -31,15 +31,18 @@ namespace EasyAssetBundle.Editor
             AssetBundleBuilder.Build(Settings.instance.buildOptions);
 
             var config = ScriptableObject.CreateInstance<Config>();
-            config.runtimeSettings = new RuntimeSettings();
-            config.runtimeSettings.Init(settings.runtimeSettings);
+            config.runtimeSettings = new RuntimeSettings(settings.runtimeSettings);
             if (settings.httpServiceSettings.enabled)
             {
                 var so = new SerializedObject(config);
                 so.FindProperty("_runtimeSettings").FindPropertyRelative("_cdnUrl").stringValue = settings.simulateUrl;
                 so.ApplyModifiedProperties();
             }
-            string path = Path.Combine("Assets", "Resources", $"{Config.FILE_NAME}.asset");
+
+            string resourcesPath = Path.Combine("Assets", "Resources");
+            Directory.CreateDirectory(resourcesPath);
+            
+            string path = Path.Combine(resourcesPath, $"{Config.FILE_NAME}.asset");
             AssetDatabase.CreateAsset(config, path);
 
             AssetBundleBuilder.CopyToStreamingAssets();
