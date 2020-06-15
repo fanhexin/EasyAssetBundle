@@ -22,14 +22,25 @@ namespace EasyAssetBundle.Editor
         {
             foreach (var processor in processors)
             {
-                processor.BeforeBuild();
+                processor.OnBeforeBuild();
             }
-            
-            Build(EditorUserBuildSettings.activeBuildTarget, buildOptions);
+
+            try
+            {
+                Build(EditorUserBuildSettings.activeBuildTarget, buildOptions);
+            }
+            catch (Exception e)
+            {
+                foreach (var processor in processors)
+                {
+                    processor.OnCancelBuild();    
+                }
+                throw e;
+            }
             
             foreach (var processor in processors)
             {
-                processor.AfterBuild();
+                processor.OnAfterBuild();
             }
         }
 

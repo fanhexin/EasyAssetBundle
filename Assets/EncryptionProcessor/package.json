@@ -1,0 +1,11 @@
+{
+    "name": "com.hpcfun.encryptionprocessor",
+    "displayName": "EncryptionProcessor",
+    "version": "1.0.2",
+    "unity": "2018.3",
+    "description": "为EasyAssetBundle构建流程加入文本加密功能",
+    "keywords": ["encrypt", "processor", "assetbundle"],
+    "dependencies": {
+        "com.hpcfun.easyassetbundle": "1.1.4"
+    }
+}

@@ -32,6 +32,10 @@ namespace EasyAssetBundle
 
         public async void Unload(bool unloadAllLoadedObjects = true)
         {
+            if (_assetBundle == null)
+            {
+                return;
+            }
             (await _assetBundle.Value)?.Unload(unloadAllLoadedObjects);
             _assetBundle = null;
         }

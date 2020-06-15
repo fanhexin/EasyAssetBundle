@@ -1,8 +1,13 @@
 {
-    "name": "EasyAssetBundle.Common",
-    "references": [],
+    "name": "EncryptionBuildProcessor.Editor",
+    "references": [
+        "EasyAssetBundle.Editor",
+        "EncryptionBuildProcessor"
+    ],
     "optionalUnityReferences": [],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

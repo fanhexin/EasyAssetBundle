@@ -4,13 +4,18 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "TestBuildProcessor", menuName = "BuildProcessors/TestBuildProcessor")]
 public class TestBuildProcessor : AbstractBuildProcessor
 {
-    public override void BeforeBuild()
+    public override void OnBeforeBuild()
     {
         Debug.Log("Before build!");
     }
 
-    public override void AfterBuild()
+    public override void OnAfterBuild()
     {
         Debug.Log("After build!");
+    }
+
+    public override void OnCancelBuild()
+    {
+        Debug.Log("cancel build!");
     }
 }
