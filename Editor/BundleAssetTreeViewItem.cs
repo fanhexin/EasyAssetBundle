@@ -21,7 +21,6 @@ namespace EasyAssetBundle.Editor
             }
             
             importer.assetBundleName = string.Empty;
-            importer.SaveAndReimport();
         }
     }
 }
