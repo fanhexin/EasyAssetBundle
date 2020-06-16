@@ -1,4 +1,3 @@
-using System.Linq;
 using EasyAssetBundle.Common;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
@@ -49,14 +48,6 @@ namespace EasyAssetBundle.Editor
 
         public void Delete()
         {
-            if (children != null)
-            {
-                foreach (var item in children.Cast<BundleAssetTreeViewItem>())
-                {
-                    item.Delete();    
-                }
-            }
-            
             _bundlesSp.RemoveBundle(id - 1);
         }
     }

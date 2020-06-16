@@ -155,12 +155,23 @@ namespace EasyAssetBundle.Editor
 
         public static void RemoveBundle(this SerializedProperty bundles, int index)
         {
+            if (index < 0 || index >= bundles.arraySize)
+            {
+                return;
+            }
+            
             var bundle = bundles.GetArrayElementAtIndex(index);
             string name = bundle.FindPropertyRelative(Bundle.nameOfName).stringValue;
+            string[] paths = AssetDatabase.GetAssetPathsFromAssetBundle(name);
+            foreach (string path in paths)
+            {
+                AssetImporter.GetAtPath(path).assetBundleName = string.Empty;
+            }
+            AssetDatabase.RemoveAssetBundleName(name, true);
+            
             bundles.MoveArrayElement(index, bundles.arraySize - 1);
             --bundles.arraySize;
             bundles.serializedObject.ApplyModifiedProperties();
-            AssetDatabase.RemoveAssetBundleName(name, true);
         }
 
         public static void RemoveBundle(this SerializedProperty bundles, string abName)
