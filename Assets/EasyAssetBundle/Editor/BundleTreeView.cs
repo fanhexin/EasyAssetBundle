@@ -45,7 +45,7 @@ namespace EasyAssetBundle.Editor
             _itemFieldGetters = new Func<TreeViewItem, IComparable>[columnNum];
             _itemFieldGetters[0] = item => item.displayName;
             _itemFieldGetters[1] = item => _bundlesSp.GetArrayElementAtIndex(item.id - 1)
-                .FindPropertyRelative("_type").enumValueIndex;
+                .FindPropertyRelative(Bundle.nameOfType).enumValueIndex;
             _itemFieldGetters[2] = item => new FileInfo(Path.Combine(Settings.currentTargetCachePath, item.displayName)).Length;
             Reload();
         }
@@ -145,7 +145,7 @@ namespace EasyAssetBundle.Editor
             for (int i = 0; i < _bundlesSp.arraySize; i++)
             {
                 var item = _bundlesSp.GetArrayElementAtIndex(i);
-                string name = item.FindPropertyRelative("_name").stringValue;
+                string name = item.FindPropertyRelative(Bundle.nameOfName).stringValue;
                 
                 allItems.Add(new BundleTreeViewItem(_bundlesSp)
                 {
@@ -378,7 +378,6 @@ namespace EasyAssetBundle.Editor
                     continue;
                 }
                 importer.assetBundleName = args.parentItem.displayName;
-                importer.SaveAndReimport();
                 changed = true;
             }
 
@@ -409,7 +408,6 @@ namespace EasyAssetBundle.Editor
                 {
                     var importer = AssetImporter.GetAtPath(path);
                     importer.assetBundleName = args.parentItem.displayName;
-                    importer.SaveAndReimport();
                 }
                 Reload();
                 return DragAndDropVisualMode.Copy;

@@ -7,18 +7,16 @@ namespace EasyAssetBundle.Editor
 {
     internal class BundleTreeViewItem : TreeViewItem
     {
-        private const string NAME = "_name";
-        private const string TYPE = "_type";
         private readonly SerializedProperty _bundlesSp;
 
         private SerializedProperty model => _bundlesSp.GetArrayElementAtIndex(id - 1);
-        public SerializedProperty typeSp => model.FindPropertyRelative(TYPE);
+        public SerializedProperty typeSp => model.FindPropertyRelative(Bundle.nameOfType);
 
         public BundleType type
         {
             set
             {
-                model.FindPropertyRelative(TYPE).enumValueIndex = (int) value;
+                model.FindPropertyRelative(Bundle.nameOfType).enumValueIndex = (int) value;
                 _bundlesSp.serializedObject.ApplyModifiedProperties();
             }
         }
@@ -40,12 +38,11 @@ namespace EasyAssetBundle.Editor
             {
                 var importer = AssetImporter.GetAtPath(path);
                 importer.assetBundleName = newName;
-                importer.SaveAndReimport();
             }
             
             AssetDatabase.RemoveAssetBundleName(displayName, false);
 
-            var nameSp = model.FindPropertyRelative(NAME);
+            var nameSp = model.FindPropertyRelative(Bundle.nameOfName);
             nameSp.stringValue = newName;
             _bundlesSp.serializedObject.ApplyModifiedProperties();
         }
@@ -60,10 +57,7 @@ namespace EasyAssetBundle.Editor
                 }
             }
             
-            _bundlesSp.MoveArrayElement(id - 1, _bundlesSp.arraySize - 1);
-            --_bundlesSp.arraySize;
-            _bundlesSp.serializedObject.ApplyModifiedProperties();
-            AssetDatabase.RemoveAssetBundleName(displayName, true);
+            _bundlesSp.RemoveBundle(id - 1);
         }
     }
 }

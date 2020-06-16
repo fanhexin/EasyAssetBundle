@@ -13,7 +13,7 @@ namespace EasyAssetBundle.Editor
             for (int i = 0; i < bundles.arraySize; i++)
             {
                 using (var item = bundles.GetArrayElementAtIndex(i))
-                using (var nameSp = item.FindPropertyRelative("_name"))
+                using (var nameSp = item.FindPropertyRelative(Bundle.nameOfName))
                     if (nameSp.stringValue == abName)
                     {
                         return i;
@@ -28,7 +28,7 @@ namespace EasyAssetBundle.Editor
             for (int i = 0; i < bundles.arraySize; i++)
             {
                 var b = bundles.GetArrayElementAtIndex(i);
-                using (var nameSp = b.FindPropertyRelative("_name"))
+                using (var nameSp = b.FindPropertyRelative(Bundle.nameOfName))
                 {
                     if (nameSp.stringValue != name)
                     {
@@ -63,7 +63,6 @@ namespace EasyAssetBundle.Editor
 
                 var importer = AssetImporter.GetAtPath(assetPath);
                 importer.assetBundleName = abName;
-                importer.SaveAndReimport();
             }
             else
             {
@@ -82,13 +81,13 @@ namespace EasyAssetBundle.Editor
             string guid = Guid.NewGuid().ToString("N");
             using (var newItem = bundles.GetArrayElementAtIndex(bundles.arraySize++))
             {
-                using (var guidSp = newItem.FindPropertyRelative("_guid")) 
+                using (var guidSp = newItem.FindPropertyRelative(Bundle.nameOfGuide)) 
                     guidSp.stringValue = guid;
 
-                using (var nameSp = newItem.FindPropertyRelative("_name")) 
+                using (var nameSp = newItem.FindPropertyRelative(Bundle.nameOfName)) 
                     nameSp.stringValue = abName;
 
-                using (var typeSp = newItem.FindPropertyRelative("_type")) 
+                using (var typeSp = newItem.FindPropertyRelative(Bundle.nameOfType)) 
                     typeSp.enumValueIndex = (int) bundleType;
             }
             bundles.serializedObject.ApplyModifiedProperties();
@@ -100,10 +99,14 @@ namespace EasyAssetBundle.Editor
         {
             foreach (string path in assetPaths)
             {
+                if (!File.Exists(path))
+                {
+                    continue;
+                }
+                
                 var importer = AssetImporter.GetAtPath(path);
                 string oldName = importer.assetBundleName;
                 importer.assetBundleName = abName;
-                importer.SaveAndReimport();
                 if (!string.IsNullOrEmpty(oldName))
                 {
                     AssetDatabase.RemoveAssetBundleName(oldName, false);
@@ -132,7 +135,7 @@ namespace EasyAssetBundle.Editor
 
         public static void SetBundleType(this SerializedProperty bundle, BundleType bundleType)
         {
-            using (var typeSp = bundle.FindPropertyRelative("_type")) 
+            using (var typeSp = bundle.FindPropertyRelative(Bundle.nameOfType)) 
                 typeSp.enumValueIndex = (int) bundleType;
             bundle.serializedObject.ApplyModifiedProperties();
         }
@@ -148,6 +151,21 @@ namespace EasyAssetBundle.Editor
             
             b.SetBundleType(bundleType);
             b.Dispose();
+        }
+
+        public static void RemoveBundle(this SerializedProperty bundles, int index)
+        {
+            var bundle = bundles.GetArrayElementAtIndex(index);
+            string name = bundle.FindPropertyRelative(Bundle.nameOfName).stringValue;
+            bundles.MoveArrayElement(index, bundles.arraySize - 1);
+            --bundles.arraySize;
+            bundles.serializedObject.ApplyModifiedProperties();
+            AssetDatabase.RemoveAssetBundleName(name, true);
+        }
+
+        public static void RemoveBundle(this SerializedProperty bundles, string abName)
+        {
+            bundles.RemoveBundle(bundles.FindIndex(abName));    
         }
     }
 }

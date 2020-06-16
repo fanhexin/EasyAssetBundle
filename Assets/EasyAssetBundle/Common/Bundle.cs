@@ -13,5 +13,11 @@ namespace EasyAssetBundle.Common
         public string guid => _guid;
         public string name => _name;
         public BundleType type => _type;
+        
+#if UNITY_EDITOR
+        public static string nameOfGuide = nameof(_guid);
+        public static string nameOfName = nameof(_name);
+        public static string nameOfType = nameof(_type);
+#endif
     }
 }
