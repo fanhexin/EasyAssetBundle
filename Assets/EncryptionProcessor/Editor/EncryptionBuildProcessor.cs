@@ -9,17 +9,31 @@ namespace EncryptionProcessor.Editor
     [CreateAssetMenu(fileName = nameof(EncryptionBuildProcessor), menuName = "EncryptionProcessor/EncryptionBuildProcessor")]
     public class EncryptionBuildProcessor : AbstractBuildProcessor
     {
-        [SerializeField] private DataSource _dataSource;
-        [SerializeField] private Encryptor _encryptor;
+        [SerializeField] DataSource _dataSource;
+        [SerializeField] Encryptor _encryptor;
         
+        [ContextMenu(nameof(OnBeforeBuild))]
         public override void OnBeforeBuild()
         {
-            Process(buffer => _encryptor.Encrypt(ref buffer, buffer.Length));
+            Process(path =>
+            {
+                byte[] buffer = File.ReadAllBytes(path);
+                _encryptor.Encrypt(ref buffer, buffer.Length);
+                string base64 = Convert.ToBase64String(buffer);
+                File.WriteAllText(path, base64);
+            });
         }
 
+        [ContextMenu(nameof(OnAfterBuild))]
         public override void OnAfterBuild()
         {
-            Process(buffer => _encryptor.Decrypt(ref buffer, buffer.Length));
+            Process(path =>
+            {
+                string base64 = File.ReadAllText(path);
+                byte[] buffer = Convert.FromBase64String(base64);
+                _encryptor.Decrypt(ref buffer, buffer.Length);
+                File.WriteAllBytes(path, buffer);
+            });
         }
 
         public override void OnCancelBuild()
@@ -27,7 +41,7 @@ namespace EncryptionProcessor.Editor
             OnAfterBuild();
         }
 
-        void Process(Action<byte[]> fn)
+        void Process(Action<string> fn)
         {
             if (_dataSource == null || _encryptor == null)
             {
@@ -36,9 +50,7 @@ namespace EncryptionProcessor.Editor
             
             foreach (string path in _dataSource)
             {
-                byte[] buffer = File.ReadAllBytes(path);
-                fn?.Invoke(buffer);
-                File.WriteAllBytes(path, buffer);
+                fn?.Invoke(path);
                 AssetDatabase.ImportAsset(path);
             }
         }

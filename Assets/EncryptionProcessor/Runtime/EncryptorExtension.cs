@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 #if UNITY_EDITOR
 using EasyAssetBundle.Common.Editor;
@@ -17,7 +18,7 @@ namespace EncryptionProcessor
             }
 #endif
             
-            byte[] buffer = textAsset.bytes;
+            byte[] buffer = Convert.FromBase64String(textAsset.text);
             encryptor.Decrypt(ref buffer, buffer.Length);
             return Encoding.UTF8.GetString(buffer, 0, buffer.Length);
         }
