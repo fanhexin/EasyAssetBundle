@@ -8,12 +8,12 @@ namespace EasyAssetBundle.Common
     [Serializable]
     public class RuntimeSettings : ISerializationCallbackReceiver
     {
-        [SerializeField] private int _version = 1;
-        [SerializeField] private string _cdnUrl;
-        [SerializeField] private int _timeout = 3;
-        [SerializeField] private string _encryptKey;
-        [SerializeField] private WebRequestProcessor _webRequestProcessor;
-        [SerializeField] private Bundle[] _bundles;
+        [SerializeField] int _version = 1;
+        [SerializeField] string _cdnUrl;
+        [SerializeField] int _timeout = 3;
+        [SerializeField] string _encryptKey;
+        [SerializeField] WebRequestProcessor _webRequestProcessor;
+        [SerializeField, HideInInspector] Bundle[] _bundles;
 
         public int version => _version;
         public string cdnUrl => _cdnUrl;
