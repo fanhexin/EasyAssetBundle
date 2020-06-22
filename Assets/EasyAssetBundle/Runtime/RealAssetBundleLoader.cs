@@ -18,18 +18,18 @@ namespace EasyAssetBundle
     // todo *添加检测和更新指定单个或多个bundle的功能
     internal partial class RealAssetBundleLoader : BaseAssetBundleLoader
     {
-        private const string VERSION_KEY = "easyassetbundle_version";
+        const string VERSION_KEY = "easyassetbundle_version";
 
         readonly string _basePath;
         readonly Dictionary<string, SharedReference<AssetBundle>> _abRefs =
             new Dictionary<string, SharedReference<AssetBundle>>();
 
-        private AssetBundleManifest _remoteManifest;
-        private AssetBundleManifest _localManifest;
-        private readonly string _remoteUrl;
-        private UniTask? _initTask;
+        AssetBundleManifest _remoteManifest;
+        AssetBundleManifest _localManifest;
+        readonly string _remoteUrl;
+        UniTask? _initTask;
 
-        private string _manifestName => Application.platform.ToGenericName();
+        string _manifestName => Application.platform.ToGenericName();
 
         public RealAssetBundleLoader(string basePath, RuntimeSettings runtimeSettings)
             : base(runtimeSettings)
@@ -60,14 +60,12 @@ namespace EasyAssetBundle
             _localManifest = await LoadManifestAsync(GetLocalPath(_manifestName));
             _remoteManifest = await LoadRemoteManifestAsync();
         }
-        
-        async UniTask<int> LoadVersionAsync()
-        {
-            int version = PlayerPrefs.GetInt(VERSION_KEY, _runtimeSettings.version);
 
+        async UniTask<int> LoadRemoteVersionAsync()
+        {
             if (string.IsNullOrEmpty(_remoteUrl))
             {
-                return version;
+                return -1;
             }
 
             using (var req = CreateWebRequest($"{_remoteUrl}/version", UnityWebRequest.Get))
@@ -78,19 +76,11 @@ namespace EasyAssetBundle
                 if (req.isNetworkError || req.isHttpError ||
                     !int.TryParse(req.downloadHandler.text, out int remoteVersion))
                 {
-                    return version;
+                    return -1;
                 }
 
-                if (remoteVersion <= version)
-                {
-                    return version;
-                }
-
-                version = remoteVersion;
-                PlayerPrefs.SetInt(VERSION_KEY, version);
+                return remoteVersion;
             }
-
-            return version;
         }
 
         async UniTask<AssetBundleManifest> LoadManifestAsync(string url, Func<string, UnityWebRequest> createFn)
@@ -124,19 +114,25 @@ namespace EasyAssetBundle
             return LoadManifestAsync(url, s => UnityWebRequestAssetBundle.GetAssetBundle(s, (uint) version, 0));
         }
 
-        async UniTask<AssetBundleManifest> LoadRemoteManifestAsync()
+        internal async UniTask<AssetBundleManifest> LoadRemoteManifestAsync()
         {
             if (string.IsNullOrEmpty(_remoteUrl))
             {
                 return _localManifest;
             }
 
-            int version = await LoadVersionAsync();
-            var remoteManifest = await LoadManifestAsync(GetRemoteAbUrl(_manifestName), version);
+            int localVersion = PlayerPrefs.GetInt(VERSION_KEY, _runtimeSettings.version);
+            int remoteVersion = await LoadRemoteVersionAsync();
+            var remoteManifest = await LoadManifestAsync(GetRemoteAbUrl(_manifestName), Mathf.Max(localVersion, remoteVersion));
             // 如果发生错误加载远程manifest失败，直接将其设置为localmanifest
             if (remoteManifest == null)
             {
                 remoteManifest = _localManifest;
+            }
+            else if (remoteVersion > localVersion)
+            {
+                // 只有成功加载远端manifest时才更新本地version值
+                PlayerPrefs.SetInt(VERSION_KEY, remoteVersion);
             }
 
             return remoteManifest;
