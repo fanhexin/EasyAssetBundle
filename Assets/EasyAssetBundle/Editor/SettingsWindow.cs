@@ -6,22 +6,22 @@ namespace EasyAssetBundle.Editor
 {
     public class SettingsWindow : EditorWindow
     {
-        private Settings _settings;
+        Settings _settings;
 
         public static SettingsWindow Display()
         {
-            var win = GetWindow<SettingsWindow>();
+            var win = CreateInstance<SettingsWindow>();
             win.titleContent = new GUIContent("EasyAssetBundleSettings");
-            win.Show();
+            win.ShowUtility();
             return win;
         }
 
-        private void OnEnable()
+        void OnEnable()
         {
             _settings = Settings.instance;
         }
 
-        private void OnGUI()
+        void OnGUI()
         {
             _settings.OnGUI();
         }

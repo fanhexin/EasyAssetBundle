@@ -127,7 +127,7 @@ namespace EasyAssetBundle.Editor
                 bool isCdnFieldFilled = Uri.IsWellFormedUriString(settings.cdnUrl, UriKind.Absolute);
                 if (isCdnFieldFilled)
                 {
-                    menu.AddItem(_checkForUpdates, false, () => TryUpdateLocalVersion());
+                    menu.AddItem(_checkForUpdates, false, () => CheckForUpdatesAsync());
                 }
                 else
                 {
@@ -154,8 +154,11 @@ namespace EasyAssetBundle.Editor
             EditorUtility.DisplayCancelableProgressBar("Operation", "Check for updates....", progress);
         }
 
-        async Task<AssetBundleManifest> GetManifestAsync(string url)
+        async Task<AssetBundleManifest> GetManifestAsync(string url, TimeSpan timeout)
         {
+            var req = WebRequest.Create(url);
+            req.Timeout = (int) timeout.TotalMilliseconds;
+            
             using (var response = await WebRequest.Create(url).GetResponseAsync())
             {
                 using (var stream = response.GetResponseStream())
@@ -199,7 +202,7 @@ namespace EasyAssetBundle.Editor
             return false;
         }
 
-        async Task TryUpdateLocalVersion()
+        async Task CheckForUpdatesAsync()
         {
             var settings = Settings.instance.runtimeSettings;
             string platformName = Application.platform.ToGenericName();
@@ -210,11 +213,12 @@ namespace EasyAssetBundle.Editor
             {
                 remoteManifestUrl = settings.webRequestProcessor.HandleUrl(remoteManifestUrl);
             }
-            
+
+            var timeout = TimeSpan.FromSeconds(10);
             ShowCheckUpdatesProgressBar(0);
             try
             {
-                var remoteManifest = await GetManifestAsync(remoteManifestUrl);
+                var remoteManifest = await GetManifestAsync(remoteManifestUrl, timeout);
                 if (remoteManifest == null)
                 {
                     ShowNotification(new GUIContent("Load remote manifest error!"));
@@ -223,7 +227,7 @@ namespace EasyAssetBundle.Editor
 
                 ShowCheckUpdatesProgressBar(0.3f);
                 string localManifestUrl = $"file://{Settings.currentTargetCachePath}/{platformName}";
-                var localManifest = await GetManifestAsync(localManifestUrl);
+                var localManifest = await GetManifestAsync(localManifestUrl, timeout);
                 if (localManifest == null)
                 {
                     ShowNotification(new GUIContent("Load local manifest error!"));
@@ -238,8 +242,9 @@ namespace EasyAssetBundle.Editor
                         versionUrl = settings.webRequestProcessor.HandleUrl(versionUrl);
                     }
 
+                    int remoteVersion = await GetRemoteVersionAsync(versionUrl, timeout);
                     ShowCheckUpdatesProgressBar(1);
-                    await AskIfUpdateVersion(settings, versionUrl);
+                    PrepareUpdatesWindow.ShowWindow(localManifest, remoteManifest, remoteVersion, _settingsSo);
                     return;
                 }
                 
@@ -258,44 +263,30 @@ namespace EasyAssetBundle.Editor
             EditorUtility.ClearProgressBar();
         }
 
-        async Task AskIfUpdateVersion(RuntimeSettings settings, string versionUrl)
+        async Task<int> GetRemoteVersionAsync(string versionUrl, TimeSpan timeout)
         {
-            var req = WebRequest.Create(versionUrl);
-            try
-            {
-                using (var resp = await req.GetResponseAsync())
-                {
-                    using (var stream = resp.GetResponseStream())
-                    {
-                        using (var reader = new StreamReader(stream))
-                        {
-                            int version = int.Parse(await reader.ReadToEndAsync());
-
-                            // 本地version更大时不做处理
-                            if (settings.version > version)
-                            {
-                                return;
-                            }
-
-                            bool ret = EditorUtility.DisplayDialog("Update Alert",
-                                $"Would you like to update local version from {settings.version} to {version + 1}?",
-                                "ok",
-                                "cancel");
-                            if (!ret)
-                            {
-                                return;
-                            }
-
-                            Settings.GetVersionSp(_settingsSo).intValue = version + 1;
-                            _settingsSo.ApplyModifiedProperties();
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError(e);    
-            }
+             var req = WebRequest.Create(versionUrl);
+             req.Timeout = (int) timeout.TotalMilliseconds;
+             
+             try
+             {
+                 using (var resp = await req.GetResponseAsync())
+                 {
+                     using (var stream = resp.GetResponseStream())
+                     {
+                         using (var reader = new StreamReader(stream))
+                         {
+                             int version = int.Parse(await reader.ReadToEndAsync());
+                             return version;
+                         }
+                     }
+                 }
+             }
+             catch (Exception e)
+             {
+                 Debug.LogError(e);
+                 return -1;
+             }           
         }
 
         void BuildContent(IEnumerable<AbstractBuildProcessor> processors)
