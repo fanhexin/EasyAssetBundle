@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using UnityEditor;
@@ -21,17 +20,17 @@ namespace EasyAssetBundle.Common.Editor
         [Serializable]
         public class HttpServiceSettings
         {
-            [SerializeField] private bool _enabled = true;
-            [SerializeField] private int _port = 8888;
+            [SerializeField] bool _enabled = true;
+            [SerializeField] int _port = 8888;
 
             public bool enabled => _enabled;
             public int port => _port;
         }
 
-        [SerializeField] private HttpServiceSettings _httpServiceSettings;
-        [SerializeField] private RuntimeSettings _runtimeSettings;
-        [SerializeField] private BuildAssetBundleOptions _buildOptions = BuildAssetBundleOptions.ChunkBasedCompression;
-        [SerializeField, HideInInspector] private Mode _mode;
+        [SerializeField] HttpServiceSettings _httpServiceSettings;
+        [SerializeField] RuntimeSettings _runtimeSettings;
+        [SerializeField] BuildAssetBundleOptions _buildOptions = BuildAssetBundleOptions.ChunkBasedCompression;
+        [SerializeField, HideInInspector] Mode _mode;
 
         public static SerializedProperty GetBundlesSp(SerializedObject so)
         {
@@ -52,9 +51,9 @@ namespace EasyAssetBundle.Common.Editor
         public RuntimeSettings runtimeSettings => _runtimeSettings;
         public BuildAssetBundleOptions buildOptions => _buildOptions;
         public Mode mode => _mode;
-        
 
-        private SimpleHTTPServer _simpleHttpServer;
+
+        SimpleHTTPServer _simpleHttpServer;
 
         public string simulateUrl
         {
@@ -75,8 +74,8 @@ namespace EasyAssetBundle.Common.Editor
         
         public static string currentTargetCachePath =>
             Path.Combine(cacheBasePath , EditorUserBuildSettings.activeBuildTarget.ToString());
-        
-        private void Start()
+
+        void Start()
         {
             if (_simpleHttpServer == null)
             {
@@ -92,7 +91,7 @@ namespace EasyAssetBundle.Common.Editor
             _simpleHttpServer.Start();
         }
 
-        private void Stop()
+        void Stop()
         {
             if (_simpleHttpServer == null)
             {
