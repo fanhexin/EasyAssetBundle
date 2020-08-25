@@ -87,14 +87,14 @@ namespace EasyAssetBundle.Editor
             }
 
             int version = _remoteVersion + 1;
-            string basePath = $"Assets/../HostedData/v{version}";
-            if (Directory.Exists(basePath))
+            string target = EditorUserBuildSettings.activeBuildTarget.ToString();
+            string path = $"Assets/../HostedData/v{version}/{target}";
+            
+            if (Directory.Exists(path))
             {
-                Directory.Delete(basePath, true);
+                Directory.Delete(path, true);
             }
 
-            string target = EditorUserBuildSettings.activeBuildTarget.ToString();
-            string path = $"{basePath}/{target}";
             Directory.CreateDirectory(path);
 
             string destVersionPath = Path.Combine(path, "version");
