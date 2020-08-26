@@ -121,7 +121,7 @@ namespace EasyAssetBundle
                 return _localManifest;
             }
 
-            int localVersion = PlayerPrefs.GetInt(VERSION_KEY, _runtimeSettings.version);
+            int localVersion = version;
             int remoteVersion = await LoadRemoteVersionAsync();
             var remoteManifest = await LoadManifestAsync(GetRemoteAbUrl(_manifestName), Mathf.Max(localVersion, remoteVersion));
             // 如果发生错误加载远程manifest失败，直接将其设置为localmanifest
@@ -319,5 +319,7 @@ namespace EasyAssetBundle
             url = _runtimeSettings.webRequestProcessor.HandleUrl(url);
             return _runtimeSettings.webRequestProcessor.HandleRequest(createFn(url));
         }
+
+        public override int version => PlayerPrefs.GetInt(VERSION_KEY, _runtimeSettings.version);
     }
 }

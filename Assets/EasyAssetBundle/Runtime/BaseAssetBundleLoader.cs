@@ -48,5 +48,6 @@ namespace EasyAssetBundle
         }
 
         public abstract Hash128? GetCachedVersionRecently(string abName);
+        public virtual int version => _runtimeSettings.version;
     }
 }
