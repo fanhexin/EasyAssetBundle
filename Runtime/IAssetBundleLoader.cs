@@ -19,5 +19,6 @@ namespace EasyAssetBundle
             CancellationToken token = default) where T : UnityEngine.Object;
 
         Hash128? GetCachedVersionRecently(string abName);
+        int version { get; }
     }
 }
