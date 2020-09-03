@@ -23,6 +23,9 @@ namespace EasyAssetBundle
         readonly string _basePath;
         readonly Dictionary<string, SharedReference<AssetBundle>> _abRefs =
             new Dictionary<string, SharedReference<AssetBundle>>();
+        
+        readonly Dictionary<string, UniTask<UnityWebRequest>> _abLoadingTasks = 
+            new Dictionary<string, UniTask<UnityWebRequest>>();
 
         AssetBundleManifest _remoteManifest;
         AssetBundleManifest _localManifest;
@@ -57,7 +60,7 @@ namespace EasyAssetBundle
 
         public override async UniTask InitAsync()
         {
-            _localManifest = await LoadManifestAsync(GetLocalPath(_manifestName));
+            _localManifest = await LoadManifestAsync(GetLocalPath(_manifestName), _runtimeSettings.version);
             _remoteManifest = await LoadRemoteManifestAsync();
         }
 
@@ -154,10 +157,16 @@ namespace EasyAssetBundle
                 progress?.Report(1);
                 return abRef.GetValue();
             }
+            
+            if (!_abLoadingTasks.TryGetValue(name, out var task))
+            {
+                var webRequest = CreateLoadAssetBundleReq(name);
+                //todo 原来用的 configureAwait在首次调用时不会上报Progress，也许升级unitytask版本试试
+                task = webRequest.SendWebRequest().WaitUntilDone(progress, token);
+                _abLoadingTasks[name] = task;
+            }
 
-            var webRequest = CreateLoadAssetBundleReq(name);
-            //todo 原来用的 configureAwait在首次调用时不会上报Progress，也许升级unitytask版本试试
-            using (var request = await webRequest.SendWebRequest().WaitUntilDone(progress, token))
+            using (var request = await task)
             {
                 AssetBundle ab;
                 
@@ -171,7 +180,6 @@ namespace EasyAssetBundle
                     {
                         throw new Exception($"{nameof(request)} {request.error}");
                     }
-
                     
                     var newReq = await CreateWebRequest(request.url, s => 
                             UnityWebRequestAssetBundle.GetAssetBundle(s, hash.Value))
@@ -182,6 +190,7 @@ namespace EasyAssetBundle
                 
                 abRef = CreateSharedRef(ab);
                 _abRefs[name] = abRef;
+                _abLoadingTasks.Remove(name);
                 return abRef.GetValue();
             }
         }
