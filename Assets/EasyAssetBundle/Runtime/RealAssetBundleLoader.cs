@@ -60,7 +60,7 @@ namespace EasyAssetBundle
 
         public override async UniTask InitAsync()
         {
-            _localManifest = await LoadManifestAsync(GetLocalPath(_manifestName), _runtimeSettings.version);
+            _localManifest = await LoadManifestAsync(GetLocalPath(_manifestName));
             _remoteManifest = await LoadRemoteManifestAsync();
         }
 
