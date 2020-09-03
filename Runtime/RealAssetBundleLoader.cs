@@ -253,8 +253,13 @@ namespace EasyAssetBundle
                 await _initTask.Value;
                 _initTask = null;
             }
+
+            AssetBundleManifest manifest =
+                _runtimeSettings.name2BundleDic.TryGetValue(name, out var bundle) && bundle.type == BundleType.Static
+                    ? _localManifest
+                    : _remoteManifest;
             
-            string[] dependencies = _remoteManifest.GetAllDependencies(name);
+            string[] dependencies = manifest.GetAllDependencies(name);
             using (var handler = ProgressDispatcher.instance.Create(progress))
             {
                 progress = handler.CreateProgress();
