@@ -5,14 +5,14 @@ using UnityEngine.SceneManagement;
 
 public class Test : MonoBehaviour, IProgress<float>
 {
-    [SerializeField] private AssetReference[] _assetReferences;
-    [SerializeField] private SceneReference _testScene;
-    
-    private Matrix4x4 _guiScaleMatrix;
+    [SerializeField] AssetReference[] _assetReferences;
+    [SerializeField] SceneReference _testScene;
 
-    private void Start()
+    Matrix4x4 _guiScaleMatrix;
+
+    void Start()
     {
-        _guiScaleMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(Screen.width / 360f, Screen.height / 640f, 1f));
+        _guiScaleMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(2, 2, 1f));
     }
 
     void OnDestroy()
@@ -50,7 +50,7 @@ public class Test : MonoBehaviour, IProgress<float>
         }
     }
 
-    private async void LoadAsync(AssetReference ar)
+    async void LoadAsync(AssetReference ar)
     {
         try
         {
@@ -62,7 +62,7 @@ public class Test : MonoBehaviour, IProgress<float>
         }
     }
 
-    private async void LoadSceneAsync(SceneReference sceneReference)
+    async void LoadSceneAsync(SceneReference sceneReference)
     {
         try
         {
