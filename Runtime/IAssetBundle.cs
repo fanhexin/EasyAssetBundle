@@ -12,6 +12,9 @@ namespace EasyAssetBundle
         UniTask<T> LoadAssetAsync<T>(string name, IProgress<float> progress = null, CancellationToken token = default)
             where T : Object;
 
+        UniTask<T[]> LoadAllAssetsAsync<T>(IProgress<float> progress = null, CancellationToken token = default)
+            where T : Object;
+
         UniTask<Scene> LoadSceneAsync(string name, LoadSceneMode loadSceneMode = LoadSceneMode.Additive,
             IProgress<float> progress = null, CancellationToken token = default);
 
