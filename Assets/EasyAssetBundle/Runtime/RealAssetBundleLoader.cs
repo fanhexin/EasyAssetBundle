@@ -164,6 +164,11 @@ namespace EasyAssetBundle
                 //todo 原来用的 configureAwait在首次调用时不会上报Progress，也许升级unitytask版本试试
                 task = webRequest.SendWebRequest().WaitUntilDone(progress, token);
                 _abLoadingTasks[name] = task;
+                token.Register(() =>
+                {
+                    webRequest.Abort();
+                    _abLoadingTasks.Remove(name);
+                });
             }
 
             using (var request = await task)
@@ -178,6 +183,7 @@ namespace EasyAssetBundle
                     var hash = GetCachedVersionRecently(name);
                     if (hash == null)
                     {
+                        _abLoadingTasks.Remove(name);
                         throw new Exception($"{nameof(request)} {request.error}");
                     }
                     
