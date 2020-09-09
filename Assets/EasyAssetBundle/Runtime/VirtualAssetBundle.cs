@@ -20,7 +20,7 @@ namespace EasyAssetBundle
             name = assetBundleName;
         }
 
-        private T LoadAsset<T>(string name) where T : Object
+        T LoadAsset<T>(string name) where T : Object
         {
             string[] paths = AssetDatabase.GetAssetPathsFromAssetBundleAndAssetName(this.name, name);
             if (paths.Length == 0)
@@ -37,6 +37,21 @@ namespace EasyAssetBundle
         {
             progress?.Report(1);
             return LoadAsset<T>(name);
+        }
+
+        public UniTask<T[]> LoadAllAssetsAsync<T>(IProgress<float> progress = null, CancellationToken token = default) where T : Object
+        {
+            progress?.Report(1);
+            string[] paths = AssetDatabase.GetAssetPathsFromAssetBundle(name);
+            if (paths == null || paths.Length == 0)
+            {
+                return UniTask.FromResult<T[]>(null);
+            }
+
+            return UniTask.FromResult(paths
+                .Select(AssetDatabase.LoadAssetAtPath<T>)
+                .Where(x => x != null)
+                .ToArray());
         }
 
         public async UniTask<Scene> LoadSceneAsync(string name, LoadSceneMode loadSceneMode, IProgress<float> progress,
