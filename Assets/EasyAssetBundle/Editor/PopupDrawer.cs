@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -10,7 +11,7 @@ namespace EasyAssetBundle.Editor
         
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            _displayedOptions = _displayedOptions ?? CreateDisplayedOptions();
+            _displayedOptions = _displayedOptions ?? CreateDisplayedOptions().Prepend("None").ToArray();
             
             int index = Mathf.Max(0, Array.IndexOf(_displayedOptions, property.stringValue));
             using (var ccs = new EditorGUI.ChangeCheckScope())
@@ -19,6 +20,10 @@ namespace EasyAssetBundle.Editor
                 if (ccs.changed)
                 {
                     property.stringValue = _displayedOptions[index];
+                    if (property.stringValue == "None")
+                    {
+                        property.stringValue = null;
+                    }
                     property.serializedObject.ApplyModifiedProperties();
                 }
             }
