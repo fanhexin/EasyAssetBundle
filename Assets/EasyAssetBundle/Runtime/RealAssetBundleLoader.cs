@@ -24,8 +24,8 @@ namespace EasyAssetBundle
         readonly Dictionary<string, SharedReference<AssetBundle>> _abRefs =
             new Dictionary<string, SharedReference<AssetBundle>>();
         
-        readonly Dictionary<string, UniTask<UnityWebRequest>> _abLoadingTasks = 
-            new Dictionary<string, UniTask<UnityWebRequest>>();
+        readonly Dictionary<string, UniTask<AssetBundle>> _abLoadingTasks = 
+            new Dictionary<string, UniTask<AssetBundle>>();
 
         AssetBundleManifest _remoteManifest;
         AssetBundleManifest _localManifest;
@@ -150,31 +150,14 @@ namespace EasyAssetBundle
             });
         }
 
-        async UniTask<AssetBundle> LoadAssetBundleAsync(string name, IProgress<float> progress, CancellationToken token)
+        async UniTask<AssetBundle> CreateLoadAssetBundleTask(string name, IProgress<float> progress, CancellationToken token)
         {
-            if (_abRefs.TryGetValue(name, out var abRef))
-            {
-                progress?.Report(1);
-                return abRef.GetValue();
-            }
-            
-            if (!_abLoadingTasks.TryGetValue(name, out var task))
-            {
-                var webRequest = CreateLoadAssetBundleReq(name);
-                //todo 原来用的 configureAwait在首次调用时不会上报Progress，也许升级unitytask版本试试
-                task = webRequest.SendWebRequest().WaitUntilDone(progress, token);
-                _abLoadingTasks[name] = task;
-                token.Register(() =>
-                {
-                    webRequest.Abort();
-                    _abLoadingTasks.Remove(name);
-                });
-            }
-
-            using (var request = await task)
+            UnityWebRequest webRequest = CreateLoadAssetBundleReq(name);
+            //todo 原来用的 configureAwait在首次调用时不会上报Progress，也许升级unitytask版本试试
+            using (var request = await webRequest.SendWebRequest().WaitUntilDone(progress, token))
             {
                 AssetBundle ab;
-                
+
                 if (request.isHttpError ||
                     request.isNetworkError ||
                     (ab = DownloadHandlerAssetBundle.GetContent(request)) == null)
@@ -183,22 +166,72 @@ namespace EasyAssetBundle
                     var hash = GetCachedVersionRecently(name);
                     if (hash == null)
                     {
-                        _abLoadingTasks.Remove(name);
-                        throw new Exception($"{nameof(request)} {request.error}");
+                        throw new Exception($"Load {name} {nameof(request)} {request.error}");
                     }
-                    
-                    var newReq = await CreateWebRequest(request.url, s => 
+
+                    var newReq = await CreateWebRequest(request.url, s =>
                             UnityWebRequestAssetBundle.GetAssetBundle(s, hash.Value))
                         .SendWebRequest()
                         .WaitUntilDone(progress, token);
                     ab = DownloadHandlerAssetBundle.GetContent(newReq);
                 }
-                
-                abRef = CreateSharedRef(ab);
-                _abRefs[name] = abRef;
-                _abLoadingTasks.Remove(name);
+
+                return ab;
+            }
+        }
+
+        // todo 最开始加载的task完成后立即unload，会导致task取出的ab为null
+        async UniTask<T> WaitTask<T>(UniTask<T> task, IProgress<float> progress, CancellationToken token)
+        {
+            while (task.Status != AwaiterStatus.Succeeded)
+            {
+                if (task.Status == AwaiterStatus.Canceled || task.Status == AwaiterStatus.Faulted)
+                {
+                    throw new OperationCanceledException();
+                }
+                token.ThrowIfCancellationRequested();
+                await UniTask.DelayFrame(1, cancellationToken: token);
+            }
+            progress?.Report(1);
+            return task.Result;
+        }
+
+        async UniTask<AssetBundle> LoadAssetBundleAsync(string name, IProgress<float> progress, CancellationToken token)
+        {
+            if (_abRefs.TryGetValue(name, out var abRef))
+            {
+                progress?.Report(1);
                 return abRef.GetValue();
             }
+
+            if (_abLoadingTasks.TryGetValue(name, out var task))
+            {
+                task = WaitTask(task, progress, token);
+            }
+            else
+            {
+                var cancellationTokenRegistration = token.Register(() => _abLoadingTasks.Remove(name));
+                task = CreateLoadAssetBundleTask(name, progress, token);
+                task.ContinueWith(_ => cancellationTokenRegistration.Dispose());
+                _abLoadingTasks[name] = task;
+            }
+
+            AssetBundle ab;
+            try
+            {
+                ab = await task;
+            }
+            finally
+            {
+                _abLoadingTasks.Remove(name);
+            }
+
+            if (!_abRefs.TryGetValue(name, out abRef))
+            {
+                abRef = CreateSharedRef(ab);
+                _abRefs[name] = abRef;
+            }
+            return abRef.GetValue();
         }
 
         // todo 重构缩减重复代码
@@ -260,12 +293,7 @@ namespace EasyAssetBundle
                 _initTask = null;
             }
 
-            AssetBundleManifest manifest =
-                _runtimeSettings.name2BundleDic.TryGetValue(name, out var bundle) && bundle.type == BundleType.Static
-                    ? _localManifest
-                    : _remoteManifest;
-            
-            string[] dependencies = manifest.GetAllDependencies(name);
+            string[] dependencies = GetAllDependencies(name);
             using (var handler = ProgressDispatcher.instance.Create(progress))
             {
                 progress = handler.CreateProgress();
@@ -278,15 +306,33 @@ namespace EasyAssetBundle
             }
         }
 
+        string[] GetAllDependencies(string abName)
+        {
+            AssetBundleManifest manifest = _runtimeSettings.name2BundleDic.TryGetValue(abName, out var bundle) && bundle.type == BundleType.Static
+                    ? _localManifest
+                    : _remoteManifest;
+            return manifest.GetAllDependencies(abName);
+        }
+
         void Unload(AssetBundle assetBundle, bool unloadAllLoadedObjects)
         {
-            string[] dependencies = _remoteManifest.GetAllDependencies(assetBundle.name);
+            string[] dependencies = GetAllDependencies(assetBundle.name);
             foreach (string dependency in dependencies)
             {
-                _abRefs[dependency].Dispose(unloadAllLoadedObjects);
+                DisposeAssetBundle(dependency, unloadAllLoadedObjects);
             }
 
-            _abRefs[assetBundle.name].Dispose(unloadAllLoadedObjects);
+            DisposeAssetBundle(assetBundle.name, unloadAllLoadedObjects);
+        }
+
+        void DisposeAssetBundle(string abName, bool unloadAllLoadedObjects)
+        {
+            if (!_abRefs.TryGetValue(abName, out var sharedReference))
+            {
+                return;
+            }
+            
+            sharedReference.Dispose(unloadAllLoadedObjects);
         }
 
         string GetRemoteAbUrl(string name)
