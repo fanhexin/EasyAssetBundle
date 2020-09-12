@@ -1,8 +1,8 @@
 #if UNITY_EDITOR
 using System;
 using System.Threading;
+using Cysharp.Threading.Tasks;
 using EasyAssetBundle.Common;
-using UniRx.Async;
 using UnityEngine;
 
 namespace EasyAssetBundle

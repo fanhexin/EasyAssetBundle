@@ -1,6 +1,6 @@
 using System;
 using System.Threading;
-using UniRx.Async;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 namespace EasyAssetBundle
@@ -11,33 +11,32 @@ namespace EasyAssetBundle
         [SerializeField] string _guid;
         public string guid => _guid;
 
-        UniTask<IAssetBundle>? _assetBundle;
+        IAssetBundle _ab;
 
         protected async UniTask<T> LoadAssetAsync<T>(string assetName, IProgress<float> progress = null,
             CancellationToken token = default) where T : UnityEngine.Object
         {
             ProgressDispatcher.Handler handler = null;
-            if (_assetBundle == null)
+            if (_ab == null)
             {
                 handler = ProgressDispatcher.instance.Create(progress);
                 progress = handler.CreateProgress();
-                _assetBundle = AssetBundleLoader.instance.LoadByGuidAsync(_guid, handler.CreateProgress(), token);
+                _ab = await AssetBundleLoader.instance.LoadByGuidAsync(_guid, handler.CreateProgress(), token);
             }
 
-            var ab = await _assetBundle.Value;
-            var ret = await ab.LoadAssetAsync<T>(assetName, progress, token);
+            var ret = await _ab.LoadAssetAsync<T>(assetName, progress, token);
             handler?.Dispose();
             return ret;
         }
 
-        public async void Unload(bool unloadAllLoadedObjects = true)
+        public void Unload(bool unloadAllLoadedObjects = true)
         {
-            if (_assetBundle == null)
+            if (_ab == null)
             {
                 return;
             }
-            (await _assetBundle.Value)?.Unload(unloadAllLoadedObjects);
-            _assetBundle = null;
+            _ab?.Unload(unloadAllLoadedObjects);
+            _ab = null;
         }
     }
 }

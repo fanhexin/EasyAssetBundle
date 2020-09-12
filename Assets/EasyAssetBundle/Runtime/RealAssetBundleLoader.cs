@@ -7,8 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using Cysharp.Threading.Tasks;
 using EasyAssetBundle.Common;
-using UniRx.Async;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -30,7 +30,7 @@ namespace EasyAssetBundle
         AssetBundleManifest _remoteManifest;
         AssetBundleManifest _localManifest;
         readonly string _remoteUrl;
-        UniTask? _initTask;
+        AsyncLazy _initTask;
 
         string _manifestName => Application.platform.ToGenericName();
 
@@ -101,7 +101,7 @@ namespace EasyAssetBundle
  
                  ab = DownloadHandlerAssetBundle.GetContent(req);
              }
- 
+
              var manifest = await ab.LoadAssetAsync<AssetBundleManifest>(nameof(AssetBundleManifest));
              ab.Unload(false);
              return manifest as AssetBundleManifest;           
@@ -154,7 +154,7 @@ namespace EasyAssetBundle
         {
             UnityWebRequest webRequest = CreateLoadAssetBundleReq(name);
             //todo 原来用的 configureAwait在首次调用时不会上报Progress，也许升级unitytask版本试试
-            using (var request = await webRequest.SendWebRequest().WaitUntilDone(progress, token))
+            using (var request = await webRequest.SendWebRequest().ToUniTask(progress, cancellationToken: token))
             {
                 AssetBundle ab;
 
@@ -172,7 +172,7 @@ namespace EasyAssetBundle
                     var newReq = await CreateWebRequest(request.url, s =>
                             UnityWebRequestAssetBundle.GetAssetBundle(s, hash.Value))
                         .SendWebRequest()
-                        .WaitUntilDone(progress, token);
+                        .ToUniTask(progress, cancellationToken: token);
                     ab = DownloadHandlerAssetBundle.GetContent(newReq);
                 }
 
@@ -183,9 +183,9 @@ namespace EasyAssetBundle
         // todo 最开始加载的task完成后立即unload，会导致task取出的ab为null
         async UniTask<T> WaitTask<T>(UniTask<T> task, IProgress<float> progress, CancellationToken token)
         {
-            while (task.Status != AwaiterStatus.Succeeded)
+            while (task.Status != UniTaskStatus.Succeeded)
             {
-                if (task.Status == AwaiterStatus.Canceled || task.Status == AwaiterStatus.Faulted)
+                if (task.Status == UniTaskStatus.Canceled || task.Status == UniTaskStatus.Faulted)
                 {
                     throw new OperationCanceledException();
                 }
@@ -193,7 +193,7 @@ namespace EasyAssetBundle
                 await UniTask.DelayFrame(1, cancellationToken: token);
             }
             progress?.Report(1);
-            return task.Result;
+            return await task;
         }
 
         async UniTask<AssetBundle> LoadAssetBundleAsync(string name, IProgress<float> progress, CancellationToken token)
@@ -210,9 +210,8 @@ namespace EasyAssetBundle
             }
             else
             {
-                var cancellationTokenRegistration = token.Register(() => _abLoadingTasks.Remove(name));
-                task = CreateLoadAssetBundleTask(name, progress, token);
-                task.ContinueWith(_ => cancellationTokenRegistration.Dispose());
+                var newTask = CreateLoadAssetBundleTask(name, progress, token);
+                task = newTask.Preserve();
                 _abLoadingTasks[name] = task;
             }
 
@@ -287,9 +286,10 @@ namespace EasyAssetBundle
             {
                 if (_initTask == null)
                 {
-                    _initTask = InitAsync();
+                    _initTask = UniTask.Lazy(InitAsync);
                 }
-                await _initTask.Value;
+                
+                await _initTask;
                 _initTask = null;
             }
 

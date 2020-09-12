@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
+using Cysharp.Threading.Tasks;
 using EasyAssetBundle.Common;
-using UniRx.Async;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -16,7 +16,7 @@ namespace EasyAssetBundle
             _runtimeSettings = runtimeSettings;
         }
 
-        private string GuidToName(string guid)
+        string GuidToName(string guid)
         {
             return _runtimeSettings.guid2BundleDic[guid].name;
         }

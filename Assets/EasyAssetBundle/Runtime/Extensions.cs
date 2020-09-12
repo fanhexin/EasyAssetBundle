@@ -1,14 +1,9 @@
 #if UNITY_EDITOR
-using EasyAssetBundle.Common.Editor;
 using UnityEditor;
 #endif
-using System;
 using System.IO;
-using System.Threading;
 using EasyAssetBundle.Common;
-using UniRx.Async;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace EasyAssetBundle
 {
@@ -29,28 +24,7 @@ namespace EasyAssetBundle
 #endif
         }
 
-        public static async UniTask<UnityWebRequest> WaitUntilDone(this UnityWebRequestAsyncOperation operation,
-            IProgress<float> progress = null,
-            CancellationToken token = default)
-        {
-            using (token.Register(operation.webRequest.Abort))
-            {
-                while (!operation.isDone)
-                {
-                    if (token.IsCancellationRequested)
-                    {
-                        return operation.webRequest;
-                    }
-                    
-                    progress?.Report(operation.progress);
-                    await UniTask.DelayFrame(1, cancellationToken: token);
-                }
-            }
-            progress?.Report(1);
-            return operation.webRequest;
-        }
-
-//         static string GetRemoteBaseUrl(this RuntimeSettings runtimeSettings)
+        //         static string GetRemoteBaseUrl(this RuntimeSettings runtimeSettings)
 //         {
 // #if UNITY_EDITOR
 //             string platformName = Application.platform.ToGenericName();
