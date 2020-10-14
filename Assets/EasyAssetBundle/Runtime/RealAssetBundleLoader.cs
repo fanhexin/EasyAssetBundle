@@ -73,7 +73,7 @@ namespace EasyAssetBundle
 
             using (var req = CreateWebRequest($"{_remoteUrl}/version", UnityWebRequest.Get))
             {
-                req.timeout = _runtimeSettings.timeout;
+                req.timeout = _runtimeSettings.loadVersionTimeout;
                 await req.SendWebRequest();
                 
                 if (req.isNetworkError || req.isHttpError ||
@@ -91,7 +91,7 @@ namespace EasyAssetBundle
              AssetBundle ab;
              using (var req = CreateWebRequest(url, createFn))
              {
-                 req.timeout = _runtimeSettings.timeout;
+                 req.timeout = _runtimeSettings.loadManifestTimeout;
                  await req.SendWebRequest();
                  
                  if (req.isNetworkError || req.isHttpError)
@@ -124,8 +124,13 @@ namespace EasyAssetBundle
                 return _localManifest;
             }
 
-            int localVersion = version;
             int remoteVersion = await LoadRemoteVersionAsync();
+            if (remoteVersion < 0)
+            {
+                return _localManifest;
+            }
+            
+            int localVersion = version;
             var remoteManifest = await LoadManifestAsync(GetRemoteAbUrl(_manifestName), Mathf.Max(localVersion, remoteVersion));
             // 如果发生错误加载远程manifest失败，直接将其设置为localmanifest
             if (remoteManifest == null)
@@ -152,14 +157,15 @@ namespace EasyAssetBundle
 
         async UniTask<AssetBundle> CreateLoadAssetBundleTask(string name, IProgress<float> progress, CancellationToken token)
         {
-            UnityWebRequest webRequest = CreateLoadAssetBundleReq(name);
+            UnityWebRequest webRequest = CreateLoadAssetBundleReq(name, out BundleType bundleType);
             //todo 原来用的 configureAwait在首次调用时不会上报Progress，也许升级unitytask版本试试
-            using (var request = await webRequest.SendWebRequest().WaitUntilDone(progress, token))
+            using (var request = await webRequest.SendWebRequest().WaitUntilDone(progress, bundleType == BundleType.Static ? CancellationToken.None : token))
             {
                 AssetBundle ab;
 
                 if (request.isHttpError ||
                     request.isNetworkError ||
+                    (bundleType != BundleType.Static && token.IsCancellationRequested) ||
                     (ab = DownloadHandlerAssetBundle.GetContent(request)) == null)
                 {
                     // 发生错误加载缓存的最新版本，没有再抛异常
@@ -171,8 +177,7 @@ namespace EasyAssetBundle
 
                     var newReq = await CreateWebRequest(request.url, s =>
                             UnityWebRequestAssetBundle.GetAssetBundle(s, hash.Value))
-                        .SendWebRequest()
-                        .WaitUntilDone(progress, token);
+                        .SendWebRequest().WaitUntilDone(progress);
                     ab = DownloadHandlerAssetBundle.GetContent(newReq);
                 }
 
@@ -235,7 +240,7 @@ namespace EasyAssetBundle
         }
 
         // todo 重构缩减重复代码
-        UnityWebRequest CreateLoadAssetBundleReq(string name)
+        UnityWebRequest CreateLoadAssetBundleReq(string name, out BundleType bundleType)
         {
             string url = string.Empty;
             Hash128 hash;
@@ -278,6 +283,7 @@ namespace EasyAssetBundle
             var req = CreateWebRequest(url, s => 
                 UnityWebRequestAssetBundle.GetAssetBundle(s, hash));
             req.timeout = _runtimeSettings.timeout;
+            bundleType = bundle.type;
             return req;
         }
 

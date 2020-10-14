@@ -30,7 +30,7 @@ namespace EasyAssetBundle
                 _assetBundle = await AssetBundleLoader.instance.LoadByGuidAsync(_guid, handler.CreateProgress(), token);
             }
 
-            Scene scene = await _assetBundle.LoadSceneAsync(_assetName, loadSceneMode, progress, token);
+            Scene scene = await _assetBundle.LoadSceneAsync(_assetName, loadSceneMode, progress);
             handler?.Dispose();
             return scene;
         }

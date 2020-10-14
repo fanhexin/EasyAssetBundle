@@ -16,7 +16,7 @@ namespace EasyAssetBundle.Editor
             BuildPlayerWindow.RegisterBuildPlayerHandler(OnBuildPlayer);    
         }
 
-        private static void OnBuildPlayer(BuildPlayerOptions options)
+        static void OnBuildPlayer(BuildPlayerOptions options)
         {
             var settings = Settings.instance;
             if (settings.runtimeSettings.bundles.Any(x => x.type == BundleType.Remote) &&

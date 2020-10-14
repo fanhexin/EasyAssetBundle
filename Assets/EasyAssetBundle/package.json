@@ -1,7 +1,7 @@
 {
     "name": "com.hpcfun.easyassetbundle",
     "displayName": "EasyAssetBundle",
-    "version": "1.2.0",
+    "version": "1.2.2",
     "unity": "2018.3",
     "description": "AssetBundle的简易封装，采用async风格api。",
     "keywords": ["asset", "bundle", "assetbundle"],

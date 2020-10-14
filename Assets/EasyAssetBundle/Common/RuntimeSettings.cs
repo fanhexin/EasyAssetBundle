@@ -11,6 +11,8 @@ namespace EasyAssetBundle.Common
         [SerializeField] int _version = 1;
         [SerializeField] string _cdnUrl;
         [SerializeField] int _timeout = 3;
+        [SerializeField] int _loadVersionTimeout = 3;
+        [SerializeField] int _loadManifestTimeout = 3;
         [SerializeField] string _encryptKey;
         [SerializeField] WebRequestProcessor _webRequestProcessor;
         [SerializeField, HideInInspector] Bundle[] _bundles;
@@ -18,6 +20,8 @@ namespace EasyAssetBundle.Common
         public int version => _version;
         public string cdnUrl => _cdnUrl;
         public int timeout => _timeout;
+        public int loadVersionTimeout => _loadVersionTimeout;
+        public int loadManifestTimeout => _loadManifestTimeout;
         public IReadOnlyList<Bundle> bundles => _bundles;
         public WebRequestProcessor webRequestProcessor => _webRequestProcessor;
         public string encryptKey => _encryptKey;
@@ -40,6 +44,8 @@ namespace EasyAssetBundle.Common
             _version = runtimeSettings._version;
             _cdnUrl = runtimeSettings._cdnUrl;
             _timeout = runtimeSettings._timeout;
+            _loadVersionTimeout = runtimeSettings._loadVersionTimeout;
+            _loadManifestTimeout = runtimeSettings._loadManifestTimeout;
             _webRequestProcessor = runtimeSettings._webRequestProcessor;
             _bundles = runtimeSettings._bundles;
             _encryptKey = runtimeSettings._encryptKey;

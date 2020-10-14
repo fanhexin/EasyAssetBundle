@@ -25,7 +25,7 @@ namespace EasyAssetBundle
             }
 
             var ab = await _assetBundle.Value;
-            var ret = await ab.LoadAssetAsync<T>(assetName, progress, token);
+            var ret = await ab.LoadAssetAsync<T>(assetName, progress);
             handler?.Dispose();
             return ret;
         }
