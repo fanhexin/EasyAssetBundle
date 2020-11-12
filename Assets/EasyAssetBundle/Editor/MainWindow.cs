@@ -161,19 +161,12 @@ namespace EasyAssetBundle.Editor
             
             using (var response = await WebRequest.Create(url).GetResponseAsync())
             {
-                using (var stream = response.GetResponseStream())
+                using (Stream stream = response.GetResponseStream())
                 {
-                    var buffer = new byte[1024];
                     using (var mem = new MemoryStream())
                     {
-                        int cnt = buffer.Length;
-                        while (cnt == buffer.Length)
-                        {
-                            cnt = await stream.ReadAsync(buffer, 0, buffer.Length);
-                            mem.Write(buffer, 0, cnt);
-                        }
-
-                        var ab = AssetBundle.LoadFromMemory(mem.GetBuffer());
+                        await stream.CopyToAsync(mem);
+                        var ab = AssetBundle.LoadFromMemory(mem.ToArray());
                         if (ab == null)
                         {
                             return null;
