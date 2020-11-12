@@ -233,7 +233,7 @@ namespace EasyAssetBundle.Editor
                     ShowNotification(new GUIContent("Load local manifest error!"));
                     return;
                 }
-            
+
                 if (CheckIfNeedUpdate(remoteManifest, localManifest))
                 {
                     string versionUrl = $"{baseUrl}/version";
@@ -247,8 +247,12 @@ namespace EasyAssetBundle.Editor
                     PrepareUpdatesWindow.ShowWindow(localManifest, remoteManifest, remoteVersion, _settingsSo);
                     return;
                 }
-                
+
                 ShowNotification(new GUIContent("No need for updates."));
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(e);    
             }
             finally
             {
