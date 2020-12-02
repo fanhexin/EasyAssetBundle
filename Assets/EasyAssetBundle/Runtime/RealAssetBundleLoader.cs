@@ -31,6 +31,7 @@ namespace EasyAssetBundle
         AssetBundleManifest _localManifest;
         readonly string _remoteUrl;
         UniTask? _initTask;
+        HashSet<string> _abs;
 
         string _manifestName => Application.platform.ToGenericName();
 
@@ -62,6 +63,7 @@ namespace EasyAssetBundle
         {
             _localManifest = await LoadManifestAsync(GetLocalPath(_manifestName));
             _remoteManifest = await LoadRemoteManifestAsync();
+            _abs = new HashSet<string>(_remoteManifest.GetAllAssetBundles());
         }
 
         async UniTask<int> LoadRemoteVersionAsync()
@@ -393,5 +395,9 @@ namespace EasyAssetBundle
         }
 
         public override int version => PlayerPrefs.GetInt(VERSION_KEY, _runtimeSettings.version);
+        public override bool Contains(string abName)
+        {
+            return _abs.Contains(abName);
+        }
     }
 }

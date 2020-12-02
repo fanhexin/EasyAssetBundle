@@ -20,5 +20,6 @@ namespace EasyAssetBundle
 
         Hash128? GetCachedVersionRecently(string abName);
         int version { get; }
+        bool Contains(string abName);
     }
 }

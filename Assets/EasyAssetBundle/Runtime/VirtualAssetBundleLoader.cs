@@ -1,8 +1,10 @@
 #if UNITY_EDITOR
 using System;
+using System.Linq;
 using System.Threading;
 using EasyAssetBundle.Common;
 using UniRx.Async;
+using UnityEditor;
 using UnityEngine;
 
 namespace EasyAssetBundle
@@ -28,6 +30,11 @@ namespace EasyAssetBundle
         public override Hash128? GetCachedVersionRecently(string abName)
         {
             return new Hash128();
+        }
+
+        public override bool Contains(string abName)
+        {
+            return AssetDatabase.GetAllAssetBundleNames().Contains(abName);
         }
     }
 }
