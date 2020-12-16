@@ -275,17 +275,18 @@ namespace EasyAssetBundle
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
+                bundleType = bundle.type;
             }
             else
             {
                 url = GetRemoteAbUrl(name);
                 hash = _remoteManifest.GetAssetBundleHash(name);
+                bundleType = BundleType.Remote;
             }
 
             var req = CreateWebRequest(url, s => 
                 UnityWebRequestAssetBundle.GetAssetBundle(s, hash));
             req.timeout = _runtimeSettings.timeout;
-            bundleType = bundle.type;
             return req;
         }
 
