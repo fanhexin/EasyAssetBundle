@@ -6,10 +6,15 @@ namespace EncryptionProcessor
     [CreateAssetMenu(fileName = nameof(XorEncryptor), menuName = "EncryptionProcessor/XorEncryptor")]
     public class XorEncryptor : Encryptor
     {
-        [SerializeField] private string _secretKey;
+        [SerializeField] string _secretKey;
 
         public override void Encrypt(ref byte[] buffer, int cnt)
         {
+            if (string.IsNullOrEmpty(_secretKey))
+            {
+                return;
+            }
+            
             byte[] keyBytes = Encoding.ASCII.GetBytes(_secretKey);
             for (var i = 0; i < cnt;)
             {
