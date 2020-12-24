@@ -60,17 +60,6 @@ namespace EasyAssetBundle.Editor
             }
 
             var settings = Settings.instance;
-            // 如果是中国版加入AssetBundle加密Build
-            if (Enum.GetNames(typeof(BuildAssetBundleOptions)).Contains("EnableProtection") && 
-                buildOptions.HasFlag(Enum.Parse(typeof(BuildAssetBundleOptions), "EnableProtection") as Enum) &&
-                !string.IsNullOrEmpty(settings.runtimeSettings.encryptKey))
-            {
-                // var method = BuildPipeline.SetAssetBundleEncryptKey()
-                var method = typeof(BuildPipeline).GetMethod("SetAssetBundleEncryptKey",
-                    BindingFlags.Static | BindingFlags.Public);
-                method.Invoke(null, new[] {settings.runtimeSettings.encryptKey});
-            }
-            
             if (buildMap != null && buildMap.Length != 0)
             {
                 BuildPipeline.BuildAssetBundles(cachePath, buildMap, buildOptions, buildTarget);

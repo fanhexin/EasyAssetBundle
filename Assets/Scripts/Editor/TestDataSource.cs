@@ -12,6 +12,11 @@ public class TestDataSource : DataSource
     
     public override IEnumerator<string> GetEnumerator()
     {
+        if (_path == null)
+        {
+            return Enumerable.Empty<string>().GetEnumerator();
+        }
+        
         string path = AssetDatabase.GetAssetPath(_path);
         return Directory.GetFiles(path, "*.json").AsEnumerable().GetEnumerator();
     }

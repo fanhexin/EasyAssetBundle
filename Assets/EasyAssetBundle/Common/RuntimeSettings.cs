@@ -13,7 +13,6 @@ namespace EasyAssetBundle.Common
         [SerializeField] int _timeout = 3;
         [SerializeField] int _loadVersionTimeout = 3;
         [SerializeField] int _loadManifestTimeout = 3;
-        [SerializeField] string _encryptKey;
         [SerializeField] WebRequestProcessor _webRequestProcessor;
         [SerializeField, HideInInspector] Bundle[] _bundles;
 
@@ -24,7 +23,6 @@ namespace EasyAssetBundle.Common
         public int loadManifestTimeout => _loadManifestTimeout;
         public IReadOnlyList<Bundle> bundles => _bundles;
         public WebRequestProcessor webRequestProcessor => _webRequestProcessor;
-        public string encryptKey => _encryptKey;
         
         public IReadOnlyDictionary<string, Bundle> guid2BundleDic { get; private set; }
         public IReadOnlyDictionary<string, Bundle> name2BundleDic { get; private set; }
@@ -48,7 +46,6 @@ namespace EasyAssetBundle.Common
             _loadManifestTimeout = runtimeSettings._loadManifestTimeout;
             _webRequestProcessor = runtimeSettings._webRequestProcessor;
             _bundles = runtimeSettings._bundles;
-            _encryptKey = runtimeSettings._encryptKey;
         }
     }
 }

@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using EasyAssetBundle.Common;
 using UniRx.Async;
@@ -15,7 +14,6 @@ using UnityEngine.Networking;
 namespace EasyAssetBundle
 {
     // todo 添加获取更新文件大小的支持(做成可选配置)
-    // todo *添加检测和更新指定单个或多个bundle的功能
     internal partial class RealAssetBundleLoader : BaseAssetBundleLoader
     {
         const string VERSION_KEY = "easyassetbundle_version";
@@ -26,36 +24,32 @@ namespace EasyAssetBundle
         
         readonly Dictionary<string, UniTask<AssetBundle>> _abLoadingTasks = 
             new Dictionary<string, UniTask<AssetBundle>>();
+        
+        readonly string _remoteUrl;
+        readonly string _manifestName;
 
         AssetBundleManifest _remoteManifest;
         AssetBundleManifest _localManifest;
-        readonly string _remoteUrl;
         UniTask? _initTask;
         HashSet<string> _abs;
-
-        string _manifestName => Application.platform.ToGenericName();
 
         public RealAssetBundleLoader(string basePath, RuntimeSettings runtimeSettings)
             : base(runtimeSettings)
         {
-            if (!string.IsNullOrEmpty(runtimeSettings.encryptKey))
-            {
-                var method = typeof(AssetBundle).GetMethod("SetAssetBundleDecryptKey", BindingFlags.Static | BindingFlags.Public);
-                method?.Invoke(null, new[] {runtimeSettings.encryptKey});
-            }
             _basePath = basePath;
-
+            string platformName = Application.platform.ToGenericName();
+            _manifestName = platformName;
 #if UNITY_EDITOR
             if (Settings.instance.httpServiceSettings.enabled)
             {
-                _remoteUrl = $"{Settings.instance.simulateUrl}/{_manifestName}";
+                _remoteUrl = $"{Settings.instance.simulateUrl}/{platformName}";
             }
             else
             {
-                _remoteUrl = string.IsNullOrEmpty(runtimeSettings.cdnUrl) ? string.Empty : $"{runtimeSettings.cdnUrl}/{_manifestName}";
+                _remoteUrl = string.IsNullOrEmpty(runtimeSettings.cdnUrl) ? string.Empty : $"{runtimeSettings.cdnUrl}/{platformName}";
             }
 #else
-            _remoteUrl = string.IsNullOrEmpty(runtimeSettings.cdnUrl) ? string.Empty : $"{runtimeSettings.cdnUrl}/{_manifestName}";
+            _remoteUrl = string.IsNullOrEmpty(runtimeSettings.cdnUrl) ? string.Empty : $"{runtimeSettings.cdnUrl}/{platformName}";
 #endif
         }
 
@@ -365,23 +359,17 @@ namespace EasyAssetBundle
             return path;
         }
 
-        public override Hash128? GetCachedVersionRecently(string abName)
+        public override IEnumerable<Hash128> GetCachedVersions(string abName)
         {
             string path = Path.Combine(Caching.defaultCache.path, abName);
             if (!Directory.Exists(path))
             {
-                return null;
+                return Enumerable.Empty<Hash128>();
             }
 
-            var directories = Directory.GetDirectories(path);
-            if (directories.Length == 0)
-            {
-                return null;
-            }
-
-            return directories.OrderByDescending(Directory.GetCreationTime)
-                .Select(x => Hash128.Parse(Path.GetFileNameWithoutExtension(x)))
-                .First();
+            return Directory.GetDirectories(path)
+                .OrderByDescending(Directory.GetCreationTime)
+                .Select(x => Hash128.Parse(Path.GetFileNameWithoutExtension(x)));
         }
 
         UnityWebRequest CreateWebRequest(string url, Func<string, UnityWebRequest> createFn)
@@ -399,6 +387,17 @@ namespace EasyAssetBundle
         public override bool Contains(string abName)
         {
             return _abs.Contains(abName);
+        }
+
+        public override bool CheckForUpdates(string abName)
+        {
+            Hash128 hash = _remoteManifest.GetAssetBundleHash(abName);
+            return hash.isValid && hash != GetCachedVersionRecently(abName);
+        }
+
+        public override IEnumerable<string> CheckForUpdates()
+        {
+            return _abs.Where(CheckForUpdates);
         }
     }
 }

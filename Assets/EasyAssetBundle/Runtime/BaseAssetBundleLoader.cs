@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using EasyAssetBundle.Common;
 using UniRx.Async;
@@ -47,8 +49,16 @@ namespace EasyAssetBundle
             return LoadAssetAsync<T>(GuidToName(guid), assetName, progress, token);
         }
 
-        public abstract Hash128? GetCachedVersionRecently(string abName);
+        public Hash128? GetCachedVersionRecently(string abName)
+        {
+            IEnumerable<Hash128> cachedVersions = GetCachedVersions(abName);
+            return cachedVersions.Any() ? cachedVersions.First() : (Hash128?) null;
+        }
+        
+        public abstract IEnumerable<Hash128> GetCachedVersions(string abName);
         public virtual int version => _runtimeSettings.version;
         public abstract bool Contains(string abName);
+        public abstract bool CheckForUpdates(string abName);
+        public abstract IEnumerable<string> CheckForUpdates();
     }
 }

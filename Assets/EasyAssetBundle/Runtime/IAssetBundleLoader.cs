@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using UniRx.Async;
 using UnityEngine;
@@ -19,7 +20,10 @@ namespace EasyAssetBundle
             CancellationToken token = default) where T : UnityEngine.Object;
 
         Hash128? GetCachedVersionRecently(string abName);
+        IEnumerable<Hash128> GetCachedVersions(string abName);
         int version { get; }
         bool Contains(string abName);
+        bool CheckForUpdates(string abName);
+        IEnumerable<string> CheckForUpdates();
     }
 }
