@@ -165,13 +165,23 @@ namespace EasyAssetBundle
                     (ab = DownloadHandlerAssetBundle.GetContent(request)) == null)
                 {
                     // 发生错误加载缓存的最新版本，没有再抛异常
+                    string newUrl = request.url;
                     var hash = GetCachedVersionRecently(name);
                     if (hash == null)
                     {
-                        throw new Exception($"Load {name} {nameof(request)} {request.error}");
+                        // patchable第一次加载时也尝试从远端加载，出现异常加载保内版本
+                        if (bundleType == BundleType.Patchable)
+                        {
+                            hash = _localManifest.GetAssetBundleHash(name);
+                            newUrl = GetLocalPath(name);
+                        }
+                        else
+                        {
+                            throw new Exception($"Load {name} {nameof(request)} {request.error}");
+                        }
                     }
 
-                    var newReq = await CreateWebRequest(request.url, s =>
+                    var newReq = await CreateWebRequest(newUrl, s =>
                             UnityWebRequestAssetBundle.GetAssetBundle(s, hash.Value))
                         .SendWebRequest().WaitUntilDone(progress);
                     ab = DownloadHandlerAssetBundle.GetContent(newReq);
@@ -252,7 +262,10 @@ namespace EasyAssetBundle
                         break;
                     case BundleType.Patchable:
                         var localHash = _localManifest.GetAssetBundleHash(name);
-                        if (!Caching.IsVersionCached(GetLocalPath(name), localHash))
+                        var remoteHash = _remoteManifest.GetAssetBundleHash(name);
+                        
+                        if (!Caching.IsVersionCached(GetLocalPath(name), localHash) &&
+                            localHash == remoteHash)
                         {
                             url = GetLocalPath(name);
                             hash = localHash;
@@ -260,7 +273,7 @@ namespace EasyAssetBundle
                         }
 
                         url = GetRemoteAbUrl(name);
-                        hash = _remoteManifest.GetAssetBundleHash(name);
+                        hash = remoteHash;
                         break;
                     case BundleType.Remote:
                         url = GetRemoteAbUrl(name);
