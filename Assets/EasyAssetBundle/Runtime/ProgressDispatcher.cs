@@ -6,12 +6,12 @@ namespace EasyAssetBundle
 {
     public class ProgressDispatcher
     {
-        private static ProgressDispatcher _instance;
+        static ProgressDispatcher _instance;
         public static ProgressDispatcher instance => _instance ?? (_instance = new ProgressDispatcher());
 
         readonly Queue<Handler> _handlers = new Queue<Handler>();
 
-        private ProgressDispatcher() { }
+        ProgressDispatcher() { }
 
         public Handler Create(IProgress<float> progress)
         {
@@ -28,10 +28,10 @@ namespace EasyAssetBundle
 
         public class Handler : IDisposable 
         {
-            private readonly ProgressDispatcher _dispatcher;
+            readonly ProgressDispatcher _dispatcher;
             readonly List<InnerProgress> _innerProgresses = new List<InnerProgress>();
             public IProgress<float> progress { private get; set; }
-            private int _topIndex = -1;
+            int _topIndex = -1;
 
             public Handler(ProgressDispatcher dispatcher)
             {
@@ -67,7 +67,7 @@ namespace EasyAssetBundle
                 _dispatcher.Recycle(this);
             }
 
-            public void Report()
+            void Report()
             {
                 if (progress == null)
                 {
@@ -84,28 +84,28 @@ namespace EasyAssetBundle
                 
                 progress.Report(sum / num);        
             }
-        }
-
-        class InnerProgress : Progress<float>
-        {
-            private readonly Handler _handler;
-            public float value { get; private set; }
-
-            public InnerProgress(Handler handler)
+            
+            class InnerProgress : Progress<float>
             {
-                _handler = handler;
-            }
+                readonly Handler _handler;
+                public float value { get; private set; }
 
-            protected override void OnReport(float value)
-            {
-                base.OnReport(value);
-                this.value = Mathf.Max(this.value, value);
-                _handler.Report();
-            }
+                public InnerProgress(Handler handler)
+                {
+                    _handler = handler;
+                }
 
-            public void Reset()
-            {
-                value = 0;
+                protected override void OnReport(float value)
+                {
+                    base.OnReport(value);
+                    this.value = Mathf.Clamp01(Mathf.Max(this.value, value));
+                    _handler.Report();
+                }
+
+                public void Reset()
+                {
+                    value = 0;
+                }
             }
         }
     }
