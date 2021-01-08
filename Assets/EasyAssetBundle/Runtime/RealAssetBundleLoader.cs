@@ -5,12 +5,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using EasyAssetBundle.Common;
 using UniRx.Async;
 using UnityEngine;
 using UnityEngine.Networking;
 
+[assembly:InternalsVisibleTo("Tests")]
 namespace EasyAssetBundle
 {
     // todo 添加获取更新文件大小的支持(做成可选配置)
@@ -28,10 +30,9 @@ namespace EasyAssetBundle
         readonly string _remoteUrl;
         readonly string _manifestName;
 
-        AssetBundleManifest _remoteManifest;
-        AssetBundleManifest _localManifest;
+        BaseAbManifest _remoteManifest;
+        BaseAbManifest _localManifest;
         UniTask? _initTask;
-        HashSet<string> _abs;
 
         public RealAssetBundleLoader(string basePath, RuntimeSettings runtimeSettings)
             : base(runtimeSettings)
@@ -39,28 +40,27 @@ namespace EasyAssetBundle
             _basePath = basePath;
             string platformName = Application.platform.ToGenericName();
             _manifestName = platformName;
+            _remoteUrl = CreateRemoteUrl(runtimeSettings, platformName);
+        }
+
+        string CreateRemoteUrl(RuntimeSettings runtimeSettings, string platformName)
+        {
 #if UNITY_EDITOR
             if (Settings.instance.httpServiceSettings.enabled)
             {
-                _remoteUrl = $"{Settings.instance.simulateUrl}/{platformName}";
+                return $"{Settings.instance.simulateUrl}/{platformName}";
             }
-            else
-            {
-                _remoteUrl = string.IsNullOrEmpty(runtimeSettings.cdnUrl) ? string.Empty : $"{runtimeSettings.cdnUrl}/{platformName}";
-            }
-#else
-            _remoteUrl = string.IsNullOrEmpty(runtimeSettings.cdnUrl) ? string.Empty : $"{runtimeSettings.cdnUrl}/{platformName}";
 #endif
+            return string.IsNullOrEmpty(runtimeSettings.cdnUrl) ? string.Empty : $"{runtimeSettings.cdnUrl}/{platformName}";
         }
 
         public override async UniTask InitAsync()
         {
-            _localManifest = await LoadManifestAsync(GetLocalPath(_manifestName));
+            _localManifest = await LoadLocalManifestAsync(GetLocalPath(_manifestName));
             _remoteManifest = await LoadRemoteManifestAsync();
-            _abs = new HashSet<string>(_remoteManifest.GetAllAssetBundles());
         }
 
-        async UniTask<int> LoadRemoteVersionAsync()
+        protected virtual async UniTask<int> LoadRemoteVersionAsync()
         {
             if (string.IsNullOrEmpty(_remoteUrl))
             {
@@ -82,7 +82,7 @@ namespace EasyAssetBundle
             }
         }
 
-        async UniTask<AssetBundleManifest> LoadManifestAsync(string url, Func<string, UnityWebRequest> createFn)
+        protected virtual async UniTask<BaseAbManifest> LoadManifestAsync(string url, int version, Func<string, UnityWebRequest> createFn)
         {
              AssetBundle ab;
              using (var req = CreateWebRequest(url, createFn))
@@ -100,34 +100,48 @@ namespace EasyAssetBundle
  
              var manifest = await ab.LoadAssetAsync<AssetBundleManifest>(nameof(AssetBundleManifest));
              ab.Unload(false);
-             return manifest as AssetBundleManifest;           
+             return new AbManifest(version, manifest as AssetBundleManifest);           
         }
 
-        UniTask<AssetBundleManifest> LoadManifestAsync(string url)
+        UniTask<BaseAbManifest> LoadLocalManifestAsync(string url)
         {
-            return LoadManifestAsync(url, UnityWebRequestAssetBundle.GetAssetBundle);
+            return LoadManifestAsync(url, _runtimeSettings.version, UnityWebRequestAssetBundle.GetAssetBundle);
         }
 
-        UniTask<AssetBundleManifest> LoadManifestAsync(string url, int version)
+        UniTask<BaseAbManifest> LoadManifestAsync(string url, int version)
         {
-            return LoadManifestAsync(url, s => UnityWebRequestAssetBundle.GetAssetBundle(s, (uint) version, 0));
+            return LoadManifestAsync(url, version, s => UnityWebRequestAssetBundle.GetAssetBundle(s, (uint) version, 0));
         }
 
-        internal async UniTask<AssetBundleManifest> LoadRemoteManifestAsync()
+        async UniTask<BaseAbManifest> LoadRemoteManifestAsync()
         {
             if (string.IsNullOrEmpty(_remoteUrl))
             {
                 return _localManifest;
             }
 
-            int remoteVersion = await LoadRemoteVersionAsync();
-            if (remoteVersion < 0)
+            int localVersion = version;
+            int remoteVersion = localVersion;
+            try
+            {
+                remoteVersion = await LoadRemoteVersionAsync();
+            }
+            catch (Exception)
+            {
+            }
+            
+            if (remoteVersion <= _runtimeSettings.version)
             {
                 return _localManifest;
             }
+
+            BaseAbManifest remoteManifest = null;
+            try
+            {
+                remoteManifest = await LoadManifestAsync(GetRemoteAbUrl(_manifestName), Mathf.Max(localVersion, remoteVersion));
+            }
+            catch (Exception) { }
             
-            int localVersion = version;
-            var remoteManifest = await LoadManifestAsync(GetRemoteAbUrl(_manifestName), Mathf.Max(localVersion, remoteVersion));
             // 如果发生错误加载远程manifest失败，直接将其设置为localmanifest
             if (remoteManifest == null)
             {
@@ -136,7 +150,7 @@ namespace EasyAssetBundle
             else if (remoteVersion > localVersion)
             {
                 // 只有成功加载远端manifest时才更新本地version值
-                PlayerPrefs.SetInt(VERSION_KEY, remoteVersion);
+                SaveVersion(remoteVersion);
             }
 
             return remoteManifest;
@@ -153,38 +167,58 @@ namespace EasyAssetBundle
 
         async UniTask<AssetBundle> CreateLoadAssetBundleTask(string name, IProgress<float> progress, CancellationToken token)
         {
-            UnityWebRequest webRequest = CreateLoadAssetBundleReq(name, out BundleType bundleType);
+            var (bundleType, url, hash) = GetBundleInfo(name);
             //todo 原来用的 configureAwait在首次调用时不会上报Progress，也许升级unitytask版本试试
-            using (var request = await webRequest.SendWebRequest().WaitUntilDone(progress, bundleType == BundleType.Static ? CancellationToken.None : token))
+            AssetBundle ab;
+            try
             {
-                AssetBundle ab;
-
-                if (request.isHttpError ||
-                    request.isNetworkError ||
-                    (bundleType != BundleType.Static && token.IsCancellationRequested) ||
-                    (ab = DownloadHandlerAssetBundle.GetContent(request)) == null)
+                ab = await LoadAssetBundleAsync(url, hash, progress, token);
+            }
+            catch (OperationCanceledException e)
+            {
+                throw e;
+            }
+            catch (Exception e)
+            {
+                var newHash = GetCachedVersionRecently(name);
+                if (newHash == null)
                 {
-                    // 发生错误加载缓存的最新版本，没有再抛异常
-                    string newUrl = request.url;
-                    var hash = GetCachedVersionRecently(name);
-                    if (hash == null)
+                    // patchable第一次加载时也尝试从远端加载，出现异常加载保内版本
+                    if (bundleType == BundleType.Patchable)
                     {
-                        // patchable第一次加载时也尝试从远端加载，出现异常加载保内版本
-                        if (bundleType == BundleType.Patchable)
-                        {
-                            hash = _localManifest.GetAssetBundleHash(name);
-                            newUrl = GetLocalPath(name);
-                        }
-                        else
-                        {
-                            throw new Exception($"Load {name} {nameof(request)} {request.error}");
-                        }
+                        newHash = _localManifest.GetAssetBundleHash(name);
+                        url = GetLocalPath(name);
                     }
+                    else
+                    {
+                        throw e;
+                    }
+                }
 
-                    var newReq = await CreateWebRequest(newUrl, s =>
-                            UnityWebRequestAssetBundle.GetAssetBundle(s, hash.Value))
-                        .SendWebRequest().WaitUntilDone(progress);
-                    ab = DownloadHandlerAssetBundle.GetContent(newReq);
+                return await LoadAssetBundleAsync(url, newHash.Value, progress, token);
+            }
+
+            return ab;
+        }
+
+        protected virtual async UniTask<AssetBundle> LoadAssetBundleAsync(string url, 
+            Hash128 hash, 
+            IProgress<float> progress,
+            CancellationToken token)
+        {
+            var req = CreateWebRequest(url, s => UnityWebRequestAssetBundle.GetAssetBundle(s, hash));
+            req.timeout = _runtimeSettings.timeout;
+            using (var request = await req.SendWebRequest().WaitUntilDone(progress, token))
+            {
+                if (request.isHttpError || request.isNetworkError)
+                {
+                    throw new UnityWebRequestException(request.error, request.url);
+                }
+
+                AssetBundle ab = DownloadHandlerAssetBundle.GetContent(request);
+                if (ab == null)
+                {
+                    throw new Exception($"{nameof(DownloadHandlerAssetBundle.GetContent)} return null!");
                 }
 
                 return ab;
@@ -246,10 +280,11 @@ namespace EasyAssetBundle
         }
 
         // todo 重构缩减重复代码
-        UnityWebRequest CreateLoadAssetBundleReq(string name, out BundleType bundleType)
+        (BundleType, string, Hash128) GetBundleInfo(string name)
         {
             string url = string.Empty;
             Hash128 hash;
+            BundleType bundleType;
 
             // 找不到的是增量更新的AssetBundle，直接远程加载处理，因为只可能在远端
             if (_runtimeSettings.name2BundleDic.TryGetValue(name, out var bundle))
@@ -264,7 +299,7 @@ namespace EasyAssetBundle
                         var localHash = _localManifest.GetAssetBundleHash(name);
                         var remoteHash = _remoteManifest.GetAssetBundleHash(name);
                         
-                        if (!Caching.IsVersionCached(GetLocalPath(name), localHash) &&
+                        if (!IsVersionCached(GetLocalPath(name), localHash) &&
                             localHash == remoteHash)
                         {
                             url = GetLocalPath(name);
@@ -291,10 +326,12 @@ namespace EasyAssetBundle
                 bundleType = BundleType.Remote;
             }
 
-            var req = CreateWebRequest(url, s => 
-                UnityWebRequestAssetBundle.GetAssetBundle(s, hash));
-            req.timeout = _runtimeSettings.timeout;
-            return req;
+            return (bundleType, url, hash);
+        }
+
+        protected virtual bool IsVersionCached(string url, Hash128 hash)
+        {
+            return Caching.IsVersionCached(url, hash);
         }
 
         public override async UniTask<IAssetBundle> LoadAsync(string name, IProgress<float> progress, CancellationToken token)
@@ -324,7 +361,7 @@ namespace EasyAssetBundle
 
         string[] GetAllDependencies(string abName)
         {
-            AssetBundleManifest manifest = _runtimeSettings.name2BundleDic.TryGetValue(abName, out var bundle) && bundle.type == BundleType.Static
+            BaseAbManifest manifest = _runtimeSettings.name2BundleDic.TryGetValue(abName, out var bundle) && bundle.type == BundleType.Static
                     ? _localManifest
                     : _remoteManifest;
             return manifest.GetAllDependencies(abName);
@@ -397,9 +434,15 @@ namespace EasyAssetBundle
         }
 
         public override int version => PlayerPrefs.GetInt(VERSION_KEY, _runtimeSettings.version);
+
+        protected virtual void SaveVersion(int v)
+        {
+            PlayerPrefs.SetInt(VERSION_KEY, v);
+        }
+
         public override bool Contains(string abName)
         {
-            return _abs.Contains(abName);
+            return _remoteManifest.Contains(abName);
         }
 
         public override bool CheckForUpdates(string abName)
@@ -410,7 +453,7 @@ namespace EasyAssetBundle
 
         public override IEnumerable<string> CheckForUpdates()
         {
-            return _abs.Where(CheckForUpdates);
+            return _remoteManifest.Where(CheckForUpdates);
         }
     }
 }

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
+[assembly:InternalsVisibleTo("Tests")]
 namespace EasyAssetBundle.Common
 {
     [Serializable]
@@ -16,16 +18,26 @@ namespace EasyAssetBundle.Common
         [SerializeField] WebRequestProcessor _webRequestProcessor;
         [SerializeField, HideInInspector] Bundle[] _bundles;
 
-        public int version => _version;
-        public string cdnUrl => _cdnUrl;
+        public int version
+        {
+            get => _version;
+            internal set => _version = value;
+        }
+        
+        public string cdnUrl
+        {
+            get => _cdnUrl;
+            internal set => _cdnUrl = value;
+        }
+
         public int timeout => _timeout;
         public int loadVersionTimeout => _loadVersionTimeout;
         public int loadManifestTimeout => _loadManifestTimeout;
         public IReadOnlyList<Bundle> bundles => _bundles;
         public WebRequestProcessor webRequestProcessor => _webRequestProcessor;
         
-        public IReadOnlyDictionary<string, Bundle> guid2BundleDic { get; private set; }
-        public IReadOnlyDictionary<string, Bundle> name2BundleDic { get; private set; }
+        public IReadOnlyDictionary<string, Bundle> guid2BundleDic { get; internal set; }
+        public IReadOnlyDictionary<string, Bundle> name2BundleDic { get; internal set; }
         
         public void OnBeforeSerialize()
         {

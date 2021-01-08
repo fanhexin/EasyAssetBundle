@@ -49,7 +49,7 @@ namespace EasyAssetBundle
             return LoadAssetAsync<T>(GuidToName(guid), assetName, progress, token);
         }
 
-        public Hash128? GetCachedVersionRecently(string abName)
+        public virtual Hash128? GetCachedVersionRecently(string abName)
         {
             IEnumerable<Hash128> cachedVersions = GetCachedVersions(abName);
             return cachedVersions.Any() ? cachedVersions.First() : (Hash128?) null;
