@@ -279,7 +279,6 @@ namespace EasyAssetBundle
             return abRef.GetValue();
         }
 
-        // todo 重构缩减重复代码
         (BundleType, string, Hash128) GetBundleInfo(string name)
         {
             string url = string.Empty;
@@ -298,16 +297,7 @@ namespace EasyAssetBundle
                     case BundleType.Patchable:
                         var localHash = _localManifest.GetAssetBundleHash(name);
                         var remoteHash = _remoteManifest.GetAssetBundleHash(name);
-                        
-                        if (!IsVersionCached(GetLocalPath(name), localHash) &&
-                            localHash == remoteHash)
-                        {
-                            url = GetLocalPath(name);
-                            hash = localHash;
-                            break;
-                        }
-
-                        url = GetRemoteAbUrl(name);
+                        url = localHash == remoteHash ? GetLocalPath(name) : GetRemoteAbUrl(name);
                         hash = remoteHash;
                         break;
                     case BundleType.Remote:
@@ -327,11 +317,6 @@ namespace EasyAssetBundle
             }
 
             return (bundleType, url, hash);
-        }
-
-        protected virtual bool IsVersionCached(string url, Hash128 hash)
-        {
-            return Caching.IsVersionCached(url, hash);
         }
 
         public override async UniTask<IAssetBundle> LoadAsync(string name, IProgress<float> progress, CancellationToken token)

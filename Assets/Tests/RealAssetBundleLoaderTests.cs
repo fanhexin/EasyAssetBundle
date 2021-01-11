@@ -146,7 +146,7 @@ namespace Tests
             });
         
         [UnityTest]
-        public IEnumerator LoadAsync_WithNotCachedAndNoUpdatePatchableAb_LoadFromLocal() =>
+        public IEnumerator LoadAsync_WithNoUpdatePatchableAb_LoadFromLocal() =>
             UniTask.ToCoroutine(async () =>
             {
                 string abName = "testAb";
@@ -154,8 +154,6 @@ namespace Tests
                 var loader = CreateLoader(1, 2, 3, (abName, BundleType.Patchable));
                 A.CallTo(() => loader.localManifest.GetAssetBundleHash(abName)).Returns(hash);
                 A.CallTo(() => loader.remoteManifest.GetAssetBundleHash(abName)).Returns(hash);
-                A.CallTo(() => loader.isVersionCachedFake(A<string>.That.Contains(abName), hash))
-                    .Returns(false);
                 await loader.LoadAsync(abName, null, default);
                 A.CallTo(() =>
                         loader.loadAssetBundleAsyncFake(
@@ -164,7 +162,7 @@ namespace Tests
             });
         
         [UnityTest]
-        public IEnumerator LoadAsync_WithNotCachedAndHaveUpdatePatchableAb_LoadFromRemote() =>
+        public IEnumerator LoadAsync_WithHaveUpdatePatchableAb_LoadFromRemote() =>
             UniTask.ToCoroutine(async () =>
             {
                 string abName = "testAb";
@@ -173,27 +171,6 @@ namespace Tests
                 var loader = CreateLoader(1, 2, 3, (abName, BundleType.Patchable));
                 A.CallTo(() => loader.localManifest.GetAssetBundleHash(abName)).Returns(localHash);
                 A.CallTo(() => loader.remoteManifest.GetAssetBundleHash(abName)).Returns(remoteHash);
-                A.CallTo(() => loader.isVersionCachedFake(A<string>.That.Contains(abName), localHash))
-                    .Returns(false);
-                await loader.LoadAsync(abName, null, default);
-                A.CallTo(() =>
-                        loader.loadAssetBundleAsyncFake(
-                            A<string>.That.Matches(x => !x.Contains("file:") && x.Contains(abName)), remoteHash))
-                    .MustHaveHappened();
-            });
-        
-        [UnityTest]
-        public IEnumerator LoadAsync_WithCachedPatchableAb_LoadFromRemote() =>
-            UniTask.ToCoroutine(async () =>
-            {
-                string abName = "testAb";
-                var localHash = Hash128.Compute(abName);
-                var remoteHash = Hash128.Compute(abName + "new");
-                var loader = CreateLoader(1, 2, 3, (abName, BundleType.Patchable));
-                A.CallTo(() => loader.localManifest.GetAssetBundleHash(abName)).Returns(localHash);
-                A.CallTo(() => loader.remoteManifest.GetAssetBundleHash(abName)).Returns(remoteHash);
-                A.CallTo(() => loader.isVersionCachedFake(A<string>.That.Contains(abName), localHash))
-                    .Returns(true);
                 await loader.LoadAsync(abName, null, default);
                 A.CallTo(() =>
                         loader.loadAssetBundleAsyncFake(
@@ -452,7 +429,6 @@ namespace Tests
             public Func<string, int, BaseAbManifest> loadManifestAsyncFake { get; }
             public Func<int> loadRemoteVersionAsyncFake { get; }
             public Action<string, Hash128> loadAssetBundleAsyncFake { get; }
-            public Func<string, Hash128, bool> isVersionCachedFake { get; }
             public Func<string, Hash128?> getCachedVersionRecentlyFake { get; }
 
             public RealAssetBundleLoaderStub(string basePath, RuntimeSettings runtimeSettings) 
@@ -464,7 +440,6 @@ namespace Tests
                 loadManifestAsyncFake = A.Fake<Func<string, int, BaseAbManifest>>();
                 loadRemoteVersionAsyncFake = A.Fake<Func<int>>();
                 loadAssetBundleAsyncFake = A.Fake<Action<string, Hash128>>();
-                isVersionCachedFake = A.Fake<Func<string, Hash128, bool>>();
                 getCachedVersionRecentlyFake = A.Fake<Func<string, Hash128?>>();
                 
                 A.CallTo(() => loadManifestAsyncFake(A<string>.That.StartsWith("file:"), A<int>._))
@@ -499,11 +474,6 @@ namespace Tests
             {
                 saveVersionFake(v);
                 currentVersion = v;
-            }
-
-            protected override bool IsVersionCached(string url, Hash128 hash)
-            {
-                return isVersionCachedFake(url, hash);
             }
 
             public override Hash128? GetCachedVersionRecently(string abName)
