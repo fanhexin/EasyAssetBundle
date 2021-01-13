@@ -31,23 +31,13 @@ namespace EasyAssetBundle
             IProgress<float> progress = null,
             CancellationToken token = default)
         {
-            if (token.IsCancellationRequested)
-            {
-                operation.webRequest.Abort();
-                return operation.webRequest;
-            }
-            
             using (token.Register(operation.webRequest.Abort))
             {
                 while (!operation.isDone)
                 {
-                    if (token.IsCancellationRequested)
-                    {
-                        return operation.webRequest;
-                    }
-                    
+                    token.ThrowIfCancellationRequested();
                     progress?.Report(operation.progress);
-                    await UniTask.DelayFrame(1, cancellationToken: token);
+                    await UniTask.DelayFrame(2, cancellationToken: token);
                 }
             }
             progress?.Report(1);
