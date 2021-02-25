@@ -165,7 +165,7 @@ namespace EasyAssetBundle
             });
         }
 
-        async UniTask<AssetBundle> CreateLoadAssetBundleTask(string name, IProgress<float> progress, CancellationToken token)
+        async UniTask<AssetBundle> CreateLoadAssetBundleTask(string name, IProgress<float> progress, CancellationToken token, bool exceptionFallback = true)
         {
             var (bundleType, url, hash) = GetBundleInfo(name);
             //todo 原来用的 configureAwait在首次调用时不会上报Progress，也许升级unitytask版本试试
@@ -180,6 +180,11 @@ namespace EasyAssetBundle
             }
             catch (Exception e)
             {
+                if (!exceptionFallback)
+                {
+                    throw e;
+                }
+                
                 var newHash = GetCachedVersionRecently(name);
                 if (newHash == null)
                 {
@@ -241,7 +246,7 @@ namespace EasyAssetBundle
             return task.Result;
         }
 
-        async UniTask<AssetBundle> LoadAssetBundleAsync(string name, IProgress<float> progress, CancellationToken token)
+        async UniTask<AssetBundle> LoadAssetBundleAsync(string name, IProgress<float> progress, CancellationToken token, bool exceptionFallback = true)
         {
             if (_abRefs.TryGetValue(name, out var abRef))
             {
@@ -256,7 +261,7 @@ namespace EasyAssetBundle
             else
             {
                 var cancellationTokenRegistration = token.Register(() => _abLoadingTasks.Remove(name));
-                task = CreateLoadAssetBundleTask(name, progress, token);
+                task = CreateLoadAssetBundleTask(name, progress, token, exceptionFallback);
                 task.ContinueWith(_ => cancellationTokenRegistration.Dispose());
                 _abLoadingTasks[name] = task;
             }
@@ -319,7 +324,7 @@ namespace EasyAssetBundle
             return (bundleType, url, hash);
         }
 
-        public override async UniTask<IAssetBundle> LoadAsync(string name, IProgress<float> progress, CancellationToken token)
+        public override async UniTask<IAssetBundle> LoadAsync(string name, IProgress<float> progress, CancellationToken token, bool exceptionFallback = true)
         {
             if (_localManifest == null || _remoteManifest == null)
             {
@@ -339,7 +344,7 @@ namespace EasyAssetBundle
                 {
                     await UniTask.WhenAll(dependencies.Select(x => LoadAssetBundleAsync(x, handler.CreateProgress(), token)));
                 }
-                var ab = await LoadAssetBundleAsync(name, progress, token);
+                var ab = await LoadAssetBundleAsync(name, progress, token, exceptionFallback);
                 return new RealAssetBundle(this, ab);
             }
         }

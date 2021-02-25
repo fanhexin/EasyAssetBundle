@@ -335,6 +335,23 @@ namespace Tests
                 Assert.Throws<OperationCanceledException>(() => WrapperFn().GetResult());
             });
         
+        [UnityTest]
+        public IEnumerator LoadAsync_WithNonFallbackAndLoadAssetBundleException_ThrowSameException() =>
+            UniTask.ToCoroutine(async () =>
+            {
+                string abName = "testAb";
+                var cachedHash = Hash128.Compute($"{abName}_cached");
+                var loader = CreateLoader(1, 2, 3, (abName, BundleType.Remote));
+                A.CallTo(() => loader.getCachedVersionRecentlyFake(abName)).Returns(cachedHash);
+                A.CallTo(() => loader.loadAssetBundleAsyncFake(A<string>._, A<Hash128>.That.Not.IsEqualTo(cachedHash))).Throws<Exception>();
+                async UniTask WrapperFn()
+                {
+                    await loader.LoadAsync(abName, null, default, false);
+                }
+
+                Assert.Throws<Exception>(() => WrapperFn().GetResult());
+            });
+        
         async UniTask<RealAssetBundleLoaderStub> Loader_InitAsync(int localVersion, int currentVersion,
             int remoteVersion, Action<RealAssetBundleLoaderStub> initStubFn = null)
         {

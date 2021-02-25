@@ -22,7 +22,7 @@ namespace EasyAssetBundle
             return UniTask.CompletedTask;
         }
 
-        public override async UniTask<IAssetBundle> LoadAsync(string name, IProgress<float> progress, CancellationToken token)
+        public override async UniTask<IAssetBundle> LoadAsync(string name, IProgress<float> progress, CancellationToken token, bool exceptionFallback = true)
         {
             progress?.Report(1);
             return new VirtualAssetBundle(name);    
