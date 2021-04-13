@@ -2,10 +2,9 @@
 using System;
 using System.Linq;
 using System.Threading;
-using UniRx.Async;
+using Cysharp.Threading.Tasks;
 using UnityEditor;
 using UnityEditor.SceneManagement;
-using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -64,8 +63,9 @@ namespace EasyAssetBundle
             }
 
             string scenePath = AssetDatabase.GUIDToAssetPath(guids.First());
-            AsyncOperation operation = EditorSceneManager.LoadSceneAsyncInPlayMode(scenePath, new LoadSceneParameters(loadSceneMode));
-            await operation.ConfigureAwait(progress, cancellation: token);
+            await EditorSceneManager
+                .LoadSceneAsyncInPlayMode(scenePath, new LoadSceneParameters(loadSceneMode))
+                .ToUniTask(progress, cancellationToken: token);
             return SceneManager.GetSceneByName(name);
         }
 
