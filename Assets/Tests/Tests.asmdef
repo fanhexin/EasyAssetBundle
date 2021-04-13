@@ -3,7 +3,7 @@
     "references": [
         "EasyAssetBundle",
         "EasyAssetBundle.Common",
-        "UniRx.Async"
+        "UniTask"
     ],
     "optionalUnityReferences": [
         "TestAssemblies"

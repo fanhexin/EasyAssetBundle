@@ -3,8 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Cysharp.Threading.Tasks;
 using EasyAssetBundle.Common;
-using UniRx.Async;
 using UnityEditor;
 using UnityEngine;
 

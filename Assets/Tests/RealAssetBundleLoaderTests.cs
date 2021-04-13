@@ -2,11 +2,11 @@ using System;
 using System.Collections;
 using System.Linq;
 using System.Threading;
+using Cysharp.Threading.Tasks;
 using EasyAssetBundle;
 using EasyAssetBundle.Common;
 using FakeItEasy;
 using NUnit.Framework;
-using UniRx.Async;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.TestTools;
@@ -62,7 +62,7 @@ namespace Tests
                     await Loader_InitAsync_WithLoadRemoteVersionThrow(1, 1, 1);
                 }
 
-                Assert.DoesNotThrow(() => WrapperFn().GetResult());
+                Assert.DoesNotThrow(() => WrapperFn().GetAwaiter().GetResult());
             });
         
         [UnityTest]
@@ -92,7 +92,7 @@ namespace Tests
                             .Throws<Exception>());
                 }
 
-                Assert.Throws<Exception>(() => WrapperFn().GetResult());
+                Assert.Throws<Exception>(() => WrapperFn().GetAwaiter().GetResult());
             });
         
         [UnityTest]
@@ -104,7 +104,7 @@ namespace Tests
                     await Loader_InitAsync_WithLoadRemoteManifestThrow(1, 2, 3);
                 }
 
-                Assert.DoesNotThrow(() => WrapperFn().GetResult());
+                Assert.DoesNotThrow(() => WrapperFn().GetAwaiter().GetResult());
             });
         
         [UnityTest]
@@ -237,7 +237,7 @@ namespace Tests
                 {
                     await loader.LoadAsync(abName, null, default);
                 }
-                Assert.Throws<Exception>(() => WrapperFn().GetResult());
+                Assert.Throws<Exception>(() => WrapperFn().GetAwaiter().GetResult());
             });
             
         [UnityTest]
@@ -332,7 +332,7 @@ namespace Tests
                     await loader.LoadAsync(abName, null, default);
                 }
 
-                Assert.Throws<OperationCanceledException>(() => WrapperFn().GetResult());
+                Assert.Throws<OperationCanceledException>(() => WrapperFn().GetAwaiter().GetResult());
             });
         
         [UnityTest]
@@ -349,7 +349,7 @@ namespace Tests
                     await loader.LoadAsync(abName, null, default, false);
                 }
 
-                Assert.Throws<Exception>(() => WrapperFn().GetResult());
+                Assert.Throws<Exception>(() => WrapperFn().GetAwaiter().GetResult());
             });
         
         async UniTask<RealAssetBundleLoaderStub> Loader_InitAsync(int localVersion, int currentVersion,

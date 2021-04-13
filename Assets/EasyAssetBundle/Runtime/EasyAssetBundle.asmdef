@@ -1,9 +1,9 @@
 {
     "name": "EasyAssetBundle",
     "references": [
-        "UniRx.Async",
         "EasyAssetBundle.Common",
-        "EasyAssetBundle.Common.Editor"
+        "EasyAssetBundle.Common.Editor",
+        "UniTask"
     ],
     "optionalUnityReferences": [],
     "includePlatforms": [],
